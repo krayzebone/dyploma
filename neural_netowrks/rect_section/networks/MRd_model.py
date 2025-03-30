@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"C:\Users\marci\Desktop\Nowy SGU\dataset\files\dataset.parquet",
+    'filepath': r"calculations\dataset\analize_dataset\dataset_histogram_rect_section.py",
     'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
@@ -64,7 +64,7 @@ TRAINING_CONFIG = {
 
 # 6. Output Configuration
 OUTPUT_CONFIG = {
-    'save_path': r"C:\Users\marci\Desktop\Nowy SGU\models\n1_model",
+    'save_path': r"nn_models\nn_models_rect_section\MRd_model",
     'visualization': {
         'max_samples': 10000,
         'histogram_bins': 100
