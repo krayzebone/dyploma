@@ -16,8 +16,8 @@ tf.random.set_seed(38)
 # ============================================
 df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
 
-features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
-target = "wk"
+features = ["MEd", "b", "d", "h", "fi", "fck", "ro1", "ro2"]
+target = ["wk"]
 
 X = df[features].values   # shape: (n_samples, 8)
 y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
@@ -46,11 +46,11 @@ def create_model(trial):
     model.add(layers.Input(shape=(X_train.shape[1],)))
     
     # Number of hidden layers
-    n_layers = trial.suggest_int("n_layers", 1, 6)
+    n_layers = trial.suggest_int("n_layers", 1, 8)
     
     for i in range(n_layers):
-        n_units = trial.suggest_int(f"n_units_l{i}", 16, 400)
-        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
+        n_units = trial.suggest_int(f"n_units_l{i}", 16, 600)
+        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.6)
 
         model.add(layers.Dense(n_units, activation=None))
         model.add(layers.Activation('relu'))
@@ -62,7 +62,7 @@ def create_model(trial):
     model.add(layers.Dense(1, activation='linear'))
     
     # Learning rate
-    lr = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
+    lr = trial.suggest_float("lr", 1e-7, 1e-1, log=True)
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss='mse',
@@ -79,14 +79,14 @@ def objective(trial):
     
     early_stop = keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=30,
         restore_best_weights=True
     )
     
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=100,
+        epochs=150,
         batch_size=batch_size,
         callbacks=[early_stop],
         verbose=0
@@ -99,7 +99,7 @@ def objective(trial):
 # Run the Optuna Study
 # ============================================
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=50)
+study.optimize(objective, n_trials=200)
 
 # Print best trial results
 print("Best trial:")

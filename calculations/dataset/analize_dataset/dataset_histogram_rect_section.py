@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the data from the Parquet file
-file_path = r"dataset\files\dataset1.parquet"
+file_path = r"datasets\dataset_rect_section.parquet"
 df = pd.read_parquet(file_path)
 
 # Specify the features to plot
