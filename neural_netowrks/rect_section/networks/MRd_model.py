@@ -9,9 +9,29 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Input
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, LearningRateScheduler
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import joblib
 import matplotlib.pyplot as plt
+
+tf.random.set_seed(38)
+
+# ============================================
+# Define named functions for transformations (pickle-friendly)
+# ============================================
+def no_transform(x):
+    return x
+
+def log_transform(x):
+    return np.log(x)
+
+def log_inverse(x):
+    return np.exp(x)
+
+def sqrt_transform(x):
+    return np.sqrt(x)
+
+def sqrt_inverse(x):
+    return x**2
 
 # ============================================
 # CENTRALIZED CONFIGURATION (MODIFY EVERYTHING HERE)
@@ -19,7 +39,7 @@ import matplotlib.pyplot as plt
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"calculations\dataset\analize_dataset\dataset_histogram_rect_section.py",
+    'filepath': r"datasets\dataset_rect_section.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
@@ -27,20 +47,29 @@ DATA_CONFIG = {
 }
 
 # 2. Transformation Configuration
+# Now using named functions instead of lambdas
 TRANSFORMATION_CONFIG = {
-    'transform': lambda x: x,        # np.sqrt, lambda x: x, etc.
-    'inverse_transform': lambda x: x, # lambda x: x**2, lambda x: x, etc.
-    'name': 'log',              # For display purposes
-    'epsilon': 1e-8             # Small constant to avoid domain errors
+    'features': {
+        # Format: 'feature_name': {'transform': func, 'inverse_transform': func, 'epsilon': value}
+        'b': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'h': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'fi': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'fck': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'ro1': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'ro2': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+    },
+
+    'target': {
+        'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8
+    }
 }
 
-# 3. Scaling Configuration
 SCALER_CONFIG = {
-    'X_scaler': StandardScaler(),  # StandardScaler() or MinMaxScaler()
-    'y_scaler': StandardScaler()   # StandardScaler() or MinMaxScaler()
+    'X_scaler': StandardScaler(),
+    'y_scaler': StandardScaler()
 }
 
-# 4. Model Architecture
 MODEL_CONFIG = {
     'hidden_layers': [
         {'units': 315, 'activation': 'relu', 'dropout': 0.00463261993637544},
@@ -48,27 +77,25 @@ MODEL_CONFIG = {
     'output_activation': 'linear'
 }
 
-
-# 5. Training Configuration
 TRAINING_CONFIG = {
     'optimizer': Adam(learning_rate=0.00018775216843688273),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 82,
-    'epochs': 3000,
+    'epochs': 100,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
-        ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=50, min_lr=1e-8),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
     ]
 }
 
-# 6. Output Configuration
 OUTPUT_CONFIG = {
     'save_path': r"nn_models\nn_models_rect_section\MRd_model",
     'visualization': {
-        'max_samples': 10000,
+        'max_samples': 100000,
         'histogram_bins': 100
-    }
+    },
+    'save_transformers': True
 }
 
 # ============================================
@@ -78,14 +105,23 @@ def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
 
-    X = df[DATA_CONFIG['features']].values
-    y = df[DATA_CONFIG['target']].values.reshape(-1, 1)
-
-    # Apply configured transformation
-    y_transformed = TRANSFORMATION_CONFIG['transform'](y + TRANSFORMATION_CONFIG['epsilon'])
+    # Apply feature-specific transformations
+    X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)
+    for i, feature in enumerate(DATA_CONFIG['features']):
+        transform_config = TRANSFORMATION_CONFIG['features'].get(feature, {'transform': lambda x: x, 'inverse_transform': lambda x: x, 'epsilon': 0})
+        X_transformed[:, i] = transform_config['transform'](
+            df[feature].values + transform_config['epsilon']
+        )
     
+    y = df[DATA_CONFIG['target']].values.reshape(-1, 1)
+    
+    # Apply target transformation
+    y_transformed = TRANSFORMATION_CONFIG['target']['transform'](
+        y + TRANSFORMATION_CONFIG['target']['epsilon']
+    )
+
     # Scale features and transformed target
-    X_scaled = SCALER_CONFIG['X_scaler'].fit_transform(X)
+    X_scaled = SCALER_CONFIG['X_scaler'].fit_transform(X_transformed)
     y_scaled = SCALER_CONFIG['y_scaler'].fit_transform(y_transformed)
 
     # Train-validation split
@@ -96,6 +132,24 @@ def load_and_preprocess_data():
     )
     
     return X_train, X_val, y_train_scaled, y_val_scaled, df, X_scaled
+
+# ============================================
+# Inverse Transformation Helpers
+# ============================================
+def inverse_transform_features(X_scaled):
+    """Inverse transform features from scaled to original space."""
+    X_unscaled = SCALER_CONFIG['X_scaler'].inverse_transform(X_scaled)
+    X_original = np.zeros_like(X_unscaled)
+    for i, feature in enumerate(DATA_CONFIG['features']):
+        transform_config = TRANSFORMATION_CONFIG['features'].get(feature, {'inverse_transform': lambda x: x})
+        X_original[:, i] = transform_config['inverse_transform'](X_unscaled[:, i])
+    return X_original
+
+def inverse_transform_target(y_scaled):
+    """Inverse transform target from scaled to original space."""
+    y_transformed = SCALER_CONFIG['y_scaler'].inverse_transform(y_scaled)
+    y_original = TRANSFORMATION_CONFIG['target']['inverse_transform'](y_transformed)
+    return y_original
 
 # ============================================
 # Model Building (Now uses MODEL_CONFIG)
@@ -144,20 +198,18 @@ def train_model(model, X_train, y_train_scaled, X_val, y_val_scaled):
 # ============================================
 def evaluate_model(model, X_val, y_val_scaled):
     """Evaluate with centralized configuration."""
-    # Evaluation in transformed space
+    # Evaluation in transformed (scaled) space
     val_loss, val_mse_scaled, val_mae_scaled = model.evaluate(X_val, y_val_scaled, verbose=0)
-    print(f"\nMetrics ({TRANSFORMATION_CONFIG['name']} space):")
+    print(f"\nMetrics in transformed space:")
     print(f"  - {TRAINING_CONFIG['metrics'][0]}: {val_mse_scaled}")
     print(f"  - {TRAINING_CONFIG['metrics'][1]}: {val_mae_scaled}")
 
-    # Convert predictions back to real scale
+    # Convert predictions from scaled -> transformed -> original
     val_pred_scaled = model.predict(X_val)
-    val_pred_transformed = SCALER_CONFIG['y_scaler'].inverse_transform(val_pred_scaled)
-    val_pred = TRANSFORMATION_CONFIG['inverse_transform'](val_pred_transformed)
+    val_pred = inverse_transform_target(val_pred_scaled)
 
-    # Convert ground truth back to real scale
-    y_val_transformed = SCALER_CONFIG['y_scaler'].inverse_transform(y_val_scaled)
-    y_val_unscaled = TRANSFORMATION_CONFIG['inverse_transform'](y_val_transformed)
+    # Convert ground truth back to real scale as well
+    y_val_unscaled = inverse_transform_target(y_val_scaled)
 
     # Compute real-scale metrics
     mse_unscaled = np.mean((val_pred - y_val_unscaled) ** 2)
@@ -205,7 +257,9 @@ def plot_scatter(actual_all, predicted_all):
 
     plt.figure(figsize=(8, 8))
     plt.scatter(actual, predicted, s=1, alpha=0.5)
-    plt.plot([min(actual), max(actual)], [min(actual), max(actual)], 'r--')
+    # 1:1 line
+    _min, _max = min(actual), max(actual)
+    plt.plot([_min, _max], [_min, _max], 'r--')
     plt.title("Predicted vs. Actual Values")
     plt.xlabel("Actual")
     plt.ylabel("Predicted")
@@ -228,10 +282,9 @@ def main():
     # 4) Evaluate model
     val_pred, y_val_unscaled = evaluate_model(model, X_val, y_val_scaled)
 
-    # Generate full predictions
+    # Generate full predictions on all data
     full_pred_scaled = model.predict(X_scaled)
-    full_pred_transformed = SCALER_CONFIG['y_scaler'].inverse_transform(full_pred_scaled)
-    full_pred = TRANSFORMATION_CONFIG['inverse_transform'](full_pred_transformed)
+    full_pred = inverse_transform_target(full_pred_scaled)
     actual_all = df[DATA_CONFIG['target']].values
 
     # 5) Visualizations
@@ -243,8 +296,12 @@ def main():
     model.save(os.path.join(OUTPUT_CONFIG['save_path'], "model.keras"))
     joblib.dump(SCALER_CONFIG['X_scaler'], os.path.join(OUTPUT_CONFIG['save_path'], "scaler_X.pkl"))
     joblib.dump(SCALER_CONFIG['y_scaler'], os.path.join(OUTPUT_CONFIG['save_path'], "scaler_y.pkl"))
+    
+    if OUTPUT_CONFIG['save_transformers']:
+        # Save transformation configuration
+        joblib.dump(TRANSFORMATION_CONFIG, os.path.join(OUTPUT_CONFIG['save_path'], "transformers_config.pkl"))
 
-    print("\n✅ Model and transformation parameters saved successfully.")
+    print("\n✅ Model, scalers, and transformation parameters saved successfully.")
 
 if __name__ == "__main__":
     main()

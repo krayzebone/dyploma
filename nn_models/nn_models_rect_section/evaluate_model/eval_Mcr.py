@@ -10,6 +10,7 @@ Date:   2025-03-30
 """
 
 import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN optimizations
 import joblib
 import numpy as np
 import pandas as pd
