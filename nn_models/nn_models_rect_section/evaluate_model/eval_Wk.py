@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 # --------------------------------------------------------------------------------
 
 DATA_FILEPATH = r"datasets\dataset_rect_section.parquet"
-MODEL_FOLDER  = r"nn_models\nn_models_rect_section\MRd_model"
+MODEL_FOLDER  = r"nn_models\nn_models_rect_section\Wk_model"
 
 # Name of the target column in the dataset
 TARGET_COLUMN = "wk"

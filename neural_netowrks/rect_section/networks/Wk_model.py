@@ -84,23 +84,21 @@ SCALER_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 357, 'activation': 'relu', 'dropout': 0.18435158080849778},
-        {'units': 296, 'activation': 'relu', 'dropout': 0.05481771741940156},
-        {'units': 61,  'activation': 'relu', 'dropout': 0.16126167701693794},
-        {'units': 253, 'activation': 'relu', 'dropout': 0.31165637335280605},
+        {'units': 405, 'activation': 'relu', 'dropout': 0.03861743200358036},
+        {'units': 503, 'activation': 'relu', 'dropout': 0.04577678109646839},
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate= 0.002353704934480255),
+    'optimizer': Adam(learning_rate= 0.0003433757087765873),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
-    'batch_size': 96,
-    'epochs': 30,
+    'batch_size': 223,
+    'epochs': 5000,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
-        ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=40, min_lr=1e-8),
     ]
 }
 
