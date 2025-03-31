@@ -41,6 +41,8 @@ Wszystkie zakładki są w folderze GUI\tabs, obliczenia które prowadzi się w z
 ### ŚN
 Dataset używany do trenowania modeli znajduję się w folderze datasets.
 
+Kod użyty do wygenerowania datasetu znajduję się w folderze calculations\dataset\generate_dataset
+
 Modele sieci neuronowych wraz ze skalarami są w folderze nn_models, odpowiednio dla przekrojów. Np. dla przekrojów
 prostokątnych, znajdują się w nn_models\nn_models_rect_section. W tym folderze znajduję się także folder nn_models\nn_models_rect_section\_evaluate_model
 w którym są skrypty, w których można przetestować jak precyzyjny jest model, dla poszczególnego feature.

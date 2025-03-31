@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers # type: ignore
+from tensorflow.keras import layers  # type: ignore
 
 tf.random.set_seed(38)
 
@@ -16,11 +16,18 @@ tf.random.set_seed(38)
 # ============================================
 df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
 
-features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
+features = ["MEd", "b", "d", "h", "fi", "fck", "ro1", "ro2"]
 target = "cost"
 
-X = df[features].values   # shape: (n_samples, 8)
+X = df[features].values   # shape: (n_samples, 7)
 y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
+
+# Add a small epsilon to avoid log(0) issues
+epsilon = 1e-8
+
+# Apply log transformation to both features and target with epsilon
+X = np.log(X + epsilon)
+y = np.log(y + epsilon)
 
 # Standardize the features and targets
 scaler_X = StandardScaler()
