@@ -3,14 +3,17 @@
 Aplikacja ma na celu wykorzystanie sieci neuronowej w celu optymalizacji prekrojów pod względem ceny
 
 ## Spis treści
+
 - [Instalacja](#instalacja)
 - [Użytkowanie](#użytkowanie)
 - [Funkcje](#funkcje)
 
 ## Instalacja
+
 Trzeba odpalić plik main.py.
 
 ## Użytkowanie
+
 Aplikacja jest napisana za pomocą biblioteki PyQt6. GUI jest podzielone na zakładki, w każdej zakładce będą prowadzone osobne obliczenia.
 
 Plan zakładek:
@@ -31,10 +34,11 @@ Plan zakładek:
 6 - (w planach) Końcowa zakładka z credits itp.
 
 ## Funkcje
-GUI
+
+###GUI
 Wszystkie zakładki są w folderze GUI\tabs, obliczenia które prowadzi się w zakładkach są w folderze calculations.
 
-ŚN
+###ŚN
 Dataset używany do trenowania modeli znajduję się w folderze calculations\dataset\files.
 
 Modele sieci neuronowych wraz ze skalarami są w folderze nn_models, odpowiednio dla przekrojów. Np. dla przekrojów
