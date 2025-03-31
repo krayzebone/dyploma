@@ -50,3 +50,5 @@ w którym są skrypty, w których można przetestować jak precyzyjny jest model
 
 W folderze neural_netoworks\rect_section\networks znajduję się kod trenujący modele a w neural_netowrks\rect_section\optuna znajduję się kod do znajdywania
 hiperparametrów dla modelu.
+
+W pliku calculations\optimization\optimize_rect_section.py jest końcowa optymalizacja przekroju prostokątnego (w takcie pracy)
