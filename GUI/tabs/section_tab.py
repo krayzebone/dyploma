@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QHBoxLayout, QSizePolicy, QPushButton
-from calculations.T_section_calc import wymiarowanie_przekroju_teowego  
+from calculations.section_calcs.T_section_calc import T_section_calc
 
 class SectionTab(QWidget):
     def __init__(self):
@@ -95,7 +95,7 @@ class SectionTab(QWidget):
             inputs["M_Ed"] = self.moment_value
 
             # Now call the function with the geometry, material data + moment
-            result1, result2 = wymiarowanie_przekroju_teowego(**inputs)
+            result1, result2 = T_section_calc(**inputs)
 
             # Update output fields
             self.result_1_output.setText(f"{result1:.3f}")

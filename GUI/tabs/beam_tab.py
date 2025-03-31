@@ -2,8 +2,8 @@ import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QLineEdit, \
     QGridLayout, QPushButton, QTextEdit, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import QPixmap
-from calculations.beam_calcs import calculate_moments
-from resource_path import resource_path
+from calculations.beams.beam_calcs import calculate_moments
+from GUI.resource_path import resource_path
 
 class BeamTab(QWidget):
     def __init__(self):
