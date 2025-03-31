@@ -28,6 +28,8 @@ Plan zakładek:
 
 5 - (w planach) Zakłądka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój o krztałcie T.
 
+6 - (w planach) Końcowa zakładka z credits itp.
+
 ## Funkcje
 GUI
 Wszystkie zakładki są w folderze GUI\tabs, obliczenia które prowadzi się w zakładkach są w folderze calculations.
