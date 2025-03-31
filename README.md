@@ -1,6 +1,7 @@
 # Aplikacja optymalizująca belki żelbetowe
 
-Aplikacja ma na celu wykorzystanie sieci neuronowej w celu optymalizacji prekrojów pod względem ceny
+Aplikacja ma na celu wykorzystanie sieci neuronowej w celu optymalizacji prekrojów pod względem ceny.
+Program będzie optymalizował przekroje prostokątne i o krztałcie litery T.
 
 ## Spis treści
 
@@ -27,9 +28,9 @@ Plan zakładek:
 
 3 - Prosty kalkulator do wyznaczania zbrojenia w przekrojach (chyba to usunę).
 
-4 - (w planach) Zakłądka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój prostokątny.
+4 - (w planach) Zakładka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój prostokątny.
 
-5 - (w planach) Zakłądka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój o krztałcie T.
+5 - (w planach) Zakładka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój o krztałcie T.
 
 6 - (w planach) Końcowa zakładka z credits itp.
 
