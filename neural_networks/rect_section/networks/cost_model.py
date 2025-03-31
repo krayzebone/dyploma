@@ -40,7 +40,7 @@ def sqrt_inverse(x):
 # 1. Data Configuration
 DATA_CONFIG = {
     'filepath': r"datasets\dataset_rect_section.parquet",
-    'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+    'features': ["MEd", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "cost",
     'test_size': 0.3,
     'random_state': 42
@@ -51,6 +51,7 @@ DATA_CONFIG = {
 TRANSFORMATION_CONFIG = {
     'features': {
         # Format: 'feature_name': {'transform': func, 'inverse_transform': func, 'epsilon': value}
+        'MEd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'b': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'h': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
@@ -72,17 +73,16 @@ SCALER_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 126, 'activation': 'relu', 'dropout': 0.020643718516042242},
-        {'units': 131, 'activation': 'relu', 'dropout': 0.3529938611834889}
+        {'units': 397, 'activation': 'relu', 'dropout': 0.14053617874853672}
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate=1.7601692983321283e-05),
+    'optimizer': Adam(learning_rate=1.5805718329232507e-05),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
-    'batch_size': 36,
+    'batch_size': 50,
     'epochs': 100,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
