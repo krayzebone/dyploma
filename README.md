@@ -35,10 +35,10 @@ Plan zakładek:
 
 ## Funkcje
 
-###GUI
+### GUI
 Wszystkie zakładki są w folderze GUI\tabs, obliczenia które prowadzi się w zakładkach są w folderze calculations.
 
-###ŚN
+### ŚN
 Dataset używany do trenowania modeli znajduję się w folderze calculations\dataset\files.
 
 Modele sieci neuronowych wraz ze skalarami są w folderze nn_models, odpowiednio dla przekrojów. Np. dla przekrojów
