@@ -14,7 +14,7 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"C:\Users\marci\Desktop\projekt_marcin\dataset\files\dataset.parquet")
+df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
 
 features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
 target = "Mcr"
