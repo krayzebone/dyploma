@@ -1,1 +1,1 @@
-# dyploma
+# Aplikacja optymalizująca belki żelbetowe
