@@ -14,6 +14,7 @@ Trzeba odpalić plik main.py.
 Aplikacja jest napisana za pomocą biblioteki PyQt6. GUI jest podzielone na zakładki, w każdej zakładce będą prowadzone osobne obliczenia.
 
 Plan zakładek:
+
 1 - Ogólny opis programu
 
 2 - Prosty kalkulator do wyznaczania momentów zginających.
@@ -28,4 +29,15 @@ Plan zakładek:
 5 - (w planach) Zakłądka gdzie wpisujemy parametry i sieć nam optymalizuje przekrój o krztałcie T.
 
 ## Funkcje
+GUI
+Wszystkie zakładki są w folderze GUI\tabs, obliczenia które prowadzi się w zakładkach są w folderze calculations.
 
+ŚN
+Dataset używany do trenowania modeli znajduję się w folderze calculations\dataset\files.
+
+Modele sieci neuronowych wraz ze skalarami są w folderze nn_models, odpowiednio dla przekrojów. Np. dla przekrojów
+prostokątnych, znajdują się w nn_models\nn_models_rect_section. W tym folderze znajduję się także folder nn_models\nn_models_rect_section\_evaluate_model
+w którym są skrypty, w których można przetestować jak precyzyjny jest model, dla poszczególnego feature.
+
+W folderze neural_netowrks\rect_section\networks znajduję się kod trenujący modele a w neural_netowrks\rect_section\optuna znajduję się kod do znajdywania
+hiperparametrów dla modelu.
