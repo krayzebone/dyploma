@@ -40,7 +40,6 @@ def rownanie_kwadratowe(
         # jeśli jedna, tę jedną, w przeciwnym razie None
         if not valid_solutions:
             return None
-        
         elif typ_przekroju == "pozornie_teowy":
             return min(valid_solutions)
 
@@ -88,7 +87,7 @@ def wymiarowanie_przekroju_teowego(
     fi_str : średnica strzemion (mm)
     M_Ed   : moment obliczeniowy (Nmm) - należy zwrócić uwagę na jednostki!
     """
-    # Sprawdzenie warunków geometrycznych.
+    # Enforce basic geometric conditions:
     if h < h_f or b_eff < b_w:
         return None
 
@@ -100,19 +99,20 @@ def wymiarowanie_przekroju_teowego(
     # Wyznaczenie współczynnika względnej wysokości strefy ściskanej
     ksi_eff_lim = 0.8 * 0.0035 / (0.0035 + f_yk / E_s)
 
-    # Podstawowe wymiary przekroju
+    # Podstawowe wymiary efektywne
     a_1 = c_nom + fi_gl / 2 + fi_str  
     d = h - a_1                       
 
-    # Nośność samej półki
+    # 2. Nośność samej półki
     M_Rd = b_eff * h_f * f_cd * (d - 0.5 * h_f) / 1_000_000
 
-    # Określenie czy przekrój jest pozornie teowy czy rzeczywiście teowy
+    # 3. Określenie czy przekrój jest pozornie teowy czy rzeczywiście teowy
     if M_Rd >= M_Ed:
         typ_przekroju = "pozornie_teowy"
     else:
         typ_przekroju = "rzeczywiscie_teowy"
 
+    # 4. Wyznaczenie wymaganego pola zbrojenia
 
     ########################################################
     # Przekrój pozornie teowy

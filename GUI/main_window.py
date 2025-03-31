@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QTabWidget
-from tabs.main_tab import MainTab
-from tabs.beam_tab import BeamTab
-from tabs.section_tab import SectionTab
+from GUI.tabs.main_tab import MainTab
+from GUI.tabs.beam_tab import BeamTab
+from GUI.tabs.section_tab import SectionTab
 
 class MainWindow(QTabWidget):
     def __init__(self):

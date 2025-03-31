@@ -73,7 +73,7 @@ class BeamTab(QWidget):
         self.update_image(0)
 
     def update_image(self, index):
-        base_dir = resource_path("resources/images")
+        base_dir = resource_path("GUI\resources\images")
         images = {
             0: os.path.join(base_dir, "przegub_przegub_belka.png"),
             1: os.path.join(base_dir, "przegub_sztywny_belka.png"),
