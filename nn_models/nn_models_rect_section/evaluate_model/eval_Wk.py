@@ -28,7 +28,7 @@ MODEL_FOLDER  = r"nn_models\nn_models_rect_section\Wk_model"
 TARGET_COLUMN = "wk"
 
 # Maximum number of samples to predict
-MAX_SAMPLES = 100_000
+MAX_SAMPLES = 100000
 
 # --------------------------------------------------------------------------------
 # 2. Load Transformation Functions & Config
@@ -198,7 +198,7 @@ def main():
     # List out features you used during training:
     # (Adjust if your features differ; 
     #  must match the original training 'features' exactly)
-    features_used = ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
+    features_used = ["MEd", "b", "h", "d", "fi", "fck", "ro1", "ro2"]
 
     # ------------------------------------------------------
     # 4.2 Randomly sample 100,000 rows (or all if smaller)
