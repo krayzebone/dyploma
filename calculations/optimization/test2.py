@@ -1,4 +1,4 @@
-from predict_rect_section import predict_section
+from test import predict_section
 
 # Your input data
 input_data = {
