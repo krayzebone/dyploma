@@ -13,6 +13,7 @@ input_data = {
     'ro2': 0.016836,
 }
 
+# Calculate the number of steel rods
 n1 = (input_data['ro1'] * input_data['b']* input_data['h']) / (input_data['fi_gl']**2 * 3.141 / 4)
 n2 = (input_data['ro2'] * input_data['b']* input_data['h']) / (input_data['fi_gl']**2 * 3.141 / 4)
 
