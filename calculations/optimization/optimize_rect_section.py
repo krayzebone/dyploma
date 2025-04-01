@@ -1,7 +1,7 @@
 from predict_rect_section import predict_section
 import math
 
-# Your input data
+# Input data
 input_data = {
     'MEd': 1580,
     'b': 873,
@@ -17,7 +17,7 @@ input_data = {
 n1 = (input_data['ro1'] * input_data['b']* input_data['h']) / (input_data['fi_gl']**2 * 3.141 / 4)
 n2 = (input_data['ro2'] * input_data['b']* input_data['h']) / (input_data['fi_gl']**2 * 3.141 / 4)
 
-# Call the function (prints results automatically)
+# Predict MRd, Mcr, Wk and cost for the input_data
 predictions = predict_section(input_data)
 
 # You can also access the returned dict:
