@@ -49,14 +49,12 @@ def rownanie_kwadratowe(
         else:
             return None
 
-
 def sprawdzenie_ksi_eff(x_eff: float, d: float, ksi_eff_lim: float) -> bool:
     """
     Sprawdza warunek x_eff / d <= ksi_eff_lim.
     """
     ksi_eff = x_eff / d
     return ksi_eff <= ksi_eff_lim
-
 
 def wymiarowanie_przekroju_teowego(
     b_eff: float,
@@ -198,8 +196,6 @@ def wymiarowanie_przekroju_teowego(
                 A_s2,
             ]
 
-
-# wyznaczenie liczby prętów zbrojeniowych na podstawie pola zbrojenia
 def wyznaczenie_zbrojenia_rzeczywistego(A_s1, A_s2, fi_gl) -> Optional[Tuple[int, int]]:
 
     if A_s1 is None or A_s2 is None:

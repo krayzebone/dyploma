@@ -105,7 +105,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         continue
 
     #####################################################################
-    #   3. Check section capacity (same as before)
+    #   3. Check section capacity
     #####################################################################
     f_cd = f_ck / 1.4
     f_yd = f_yk / 1.15
