@@ -3,9 +3,6 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 10000000
-data_list = []
-
 def quadratic_equation(
     a: float, 
     b: float, 
@@ -48,7 +45,7 @@ def quadratic_equation(
         if valid_solutions:
             return min(valid_solutions)
         
-def check_section_type(MEd: float, beff: float, h: float, hf: float, figl: float, fck: float):
+def check_section_type_1r(MEd: float, beff: float, h: float, hf: float, figl: float, fck: float):
 
     cnom = 48
     a1 = cnom + figl/2
@@ -65,7 +62,7 @@ def check_section_type(MEd: float, beff: float, h: float, hf: float, figl: float
     
     return section_type
 
-def PT_Section(beff: float, h: float, figl: float, fck: float):
+def PT_Section_1r(MEd: float, beff: float, h: float, figl: float, fck: float):
 
     fyk = 500
     fyd = fyk / 1.15
@@ -103,7 +100,7 @@ def PT_Section(beff: float, h: float, figl: float, fck: float):
         As1 = (As2 * fyd + xeff * beff * fcd) / fyd
         return section_type, As1, As2
 
-def RZT_Section(beff: float, bw: float, h: float, hf: float, figl: float, fck: float):
+def RZT_Section_1r(MEd: float, beff: float, bw: float, h: float, hf: float, figl: float, fck: float):
 
     fyk = 500
     fyd = fyk / 1.15
@@ -140,43 +137,6 @@ def RZT_Section(beff: float, bw: float, h: float, hf: float, figl: float, fck: f
         As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
         return section_type, As1, As2
 
-# External moment
-#MEd = np.random.uniform(low=10, high=10000) * 1e6
-
-# Geometry of section
-#beff = np.random.uniform(low=100, high=4000)
-#bw =   np.random.uniform(low=100, high=1500)
-#h =    np.random.uniform(low=100, high=2000)
-#hf =   np.random.uniform(low=100, high=500)
-
-# Concrete choice
-#fck = np.random.choice([25, 30, 35, 40, 45, 50, 55])
-fyk = 500
-
-# Choose bar diameter from discrete set
-#figl = np.random.choice([8, 10, 12, 16, 20, 25, 28, 32])
-
-MEd = 180
-beff = 400
-bw = 200
-h = 300
-hf = 150
-fck = 25
-figl = 32
-
-section_type = check_section_type(MEd, beff, h, hf, figl, fck)
-
-if section_type == 'PT':
-    section_type, As1, As2 = PT_Section(beff, h, figl, fck)
-    print(section_type)
-    print(As1)
-    print(As2)
-
-if section_type == 'RZT':
-    section_type, As1, As2 = RZT_Section(beff, bw, h, hf, figl, fck)
-    print(section_type)
-    print(As1)
-    print(As2)
 
 
 

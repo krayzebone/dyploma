@@ -51,7 +51,6 @@ def sprawdzenie_ksi_eff(x_eff: float, d: float, ksi_eff_lim: float) -> bool:
     ksi_eff = x_eff / d
     return ksi_eff <= ksi_eff_lim
 
-
 def rect_section_design(
     b: float,
     h: float,
