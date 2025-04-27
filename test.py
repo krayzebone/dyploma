@@ -218,44 +218,52 @@ def find_optimal_scenario(inputs, possible_fi, possible_fck):
             
             for layers, a1 in a1_vals.items():
                 d = h - a1
-                MRd = beff * hf * fcd * (d - 0.5*hf)
+                MRd = (beff * hf * fcd * (d - 0.5*hf)) / 1e6
                 scenario_type = 'PT' if MEd < MRd else 'RZT'
                 func = globals()[f'calc_{scenario_type}_{layers}r_plus']
 
-                As1, As2, cost = func(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck)
-                num_rods_As1, actual_As1 = calculate_number_of_rods(As1, fi)
-                num_rods_As2, actual_As2 = calculate_number_of_rods(As2, fi)
-                rods_fit = (check_rods_fit(bw, cnom, num_rods_As1, fi, smax, layers) and 
-                           check_rods_fit(bw, cnom, num_rods_As2, fi, smax, layers))
-                
-                scenario = {
-                    'MEd': MEd,
-                    'beff': beff,
-                    'bw': bw,
-                    'h': h,
-                    'hf': hf,
-                    'fi': fi,
-                    'fck': fck,
-                    'type': scenario_type,
-                    'layers': layers,
-                    'As1': As1,
-                    'As2': As2,
-                    'num_rods_As1': num_rods_As1,
-                    'num_rods_As2': num_rods_As2,
-                    'actual_As1': actual_As1,
-                    'actual_As2': actual_As2,
-                    'fit_check': rods_fit,
-                    'cost': cost
-                }
-                
-                all_scenarios.append(scenario)
-                if rods_fit and cost < best['cost']:
-                    best.update(scenario)
+                try:
+                    As1, As2, cost = func(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck)
+                    num_rods_As1, actual_As1 = calculate_number_of_rods(As1, fi)
+                    num_rods_As2, actual_As2 = calculate_number_of_rods(As2, fi)
+                    rods_fit = (check_rods_fit(bw, cnom, num_rods_As1, fi, smax, layers) and 
+                               check_rods_fit(bw, cnom, num_rods_As2, fi, smax, layers))
+                    
+                    scenario = {
+                        'MEd': MEd,
+                        'beff': beff,
+                        'bw': bw,
+                        'h': h,
+                        'hf': hf,
+                        'fi': fi,
+                        'fck': fck,
+                        'type': scenario_type,
+                        'layers': layers,
+                        'As1': As1 if not math.isinf(As1) else None,
+                        'As2': As2 if not math.isinf(As2) else None,
+                        'num_rods_As1': num_rods_As1,
+                        'num_rods_As2': num_rods_As2,
+                        'actual_As1': actual_As1 if not math.isinf(actual_As1) else None,
+                        'actual_As2': actual_As2 if not math.isinf(actual_As2) else None,
+                        'fit_check': rods_fit,
+                        'cost': cost if not math.isinf(cost) else None
+                    }
+                    
+                    all_scenarios.append(scenario)
+                    if rods_fit and cost < best['cost']:
+                        best.update(scenario)
+                except Exception as e:
+                    print(f"Error processing fck={fck}, fi={fi}, layers={layers}: {str(e)}")
+                    continue
 
     return best, all_scenarios
 
 def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
-    df = pd.DataFrame(all_scenarios)
+    # Ensure all dictionaries have the same keys
+    all_keys = set().union(*(d.keys() for d in all_scenarios))
+    standardized = [dict((k, d.get(k, None)) for k in all_keys) for d in all_scenarios]
+    
+    df = pd.DataFrame(standardized)
     
     # Reorder columns with input parameters first
     columns_order = [
@@ -264,6 +272,8 @@ def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
         'As1', 'As2', 'actual_As1', 'actual_As2',
         'num_rods_As1', 'num_rods_As2', 'fit_check'
     ]
+    # Only include columns that exist in the DataFrame
+    columns_order = [col for col in columns_order if col in df.columns]
     df = df[columns_order]
     
     with pd.ExcelWriter(filename, engine='openpyxl') as writer:
@@ -275,15 +285,15 @@ def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
         # Set column widths
         for column in worksheet.columns:
             max_length = max(len(str(cell.value)) for cell in column)
-            worksheet.column_dimensions[column[0].column_letter].width = max_length + 2
+            worksheet.column_dimensions[column[0].column_letter].width = min(max_length + 2, 30)
 
 if __name__ == '__main__':
     inputs = {
-        'MEd': 600,
-        'beff': 1570,
-        'bw': 600,
-        'h': 300,
-        'hf': 300,
+        'MEd': 480,
+        'beff': 450,
+        'bw': 300,
+        'h': 450,
+        'hf': 150,
         'cnom': 30,
         'fi_str': 8
     }
@@ -300,7 +310,7 @@ if __name__ == '__main__':
     print(f"  bar ∅ = {best['fi']} mm")
     print(f"  moment region = {best['type']} with {best['layers']} layer(s)")
     print(f"  Required As1 = {best['As1']:.1f} mm², As2 = {best['As2']:.1f} mm²")
-    print(f"  Number of rods: n1 = {best['num_rods_As1']}, n2 = {best['num_rods_As2']}")
+    print(f"  Number of rods: As1 = {best['num_rods_As1']}, As2 = {best['num_rods_As2']}")
     print(f"  Actual provided: As1 = {best['actual_As1']:.1f} mm², As2 = {best['actual_As2']:.1f} mm²")
     print(f"  Do rods fit in section? {'Yes' if best['fit_check'] else 'No'}")
     print(f"  total cost = {best['cost']:.2f} zł")
