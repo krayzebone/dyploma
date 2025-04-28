@@ -377,7 +377,6 @@ def find_optimal_scenario(inputs):
 
     return best
 
-
 if __name__ == '__main__':
     inputs = {
         'MEd': 600,

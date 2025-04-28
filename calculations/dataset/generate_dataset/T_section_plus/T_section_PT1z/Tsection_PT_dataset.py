@@ -67,7 +67,7 @@ def calculate_section_cost(beff: float, bw: float, h: float, hf: float, fck: flo
     
     return total_cost
 
-num_iterations = 4000000
+num_iterations = 100000
 data_list = []
 
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):

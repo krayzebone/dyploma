@@ -92,7 +92,6 @@ def calc_cost(beff: float, bw: float, h: float, hf: float, fck: float, As1: floa
     
     return total_cost
 
-
 def calc_PT_1r_plus(MEd, beff, bw , h, hf, fi, fi_str, cnom, fcd, fyd):
 
     a1 = cnom + fi / 2 + fi_str

@@ -4,10 +4,10 @@ import optuna
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers  # type: ignore
 
 tf.random.set_seed(38)
 
@@ -19,11 +19,13 @@ df = pd.read_parquet(r"dataset_files\T_section_plus\T_section_PT1\PT1r_dataset.p
 features = ["MEd", "beff", "bw", "h", "hf", "fi", "fck"]
 target = ["cost", "MRd", "As1"]
 
-X = df[features].values
+X = df[features].values   # shape: (n_samples, 7)
 y = df[target].values
 
 # Add a small epsilon to avoid log(0) issues
 epsilon = 1e-8
+
+# Apply log transformation to both features and target with epsilon
 X = np.log(X + epsilon)
 y = np.log(y + epsilon)
 
@@ -45,42 +47,33 @@ X_train, X_val, y_train, y_val = train_test_split(
 def create_model(trial):
     """
     Build a neural network model for triple output prediction.
+    Includes Batch Normalization after each Dense layer.
     """
-    input_layer = layers.Input(shape=(X_train.shape[1],))
+    model = keras.Sequential()
+    model.add(layers.Input(shape=(X_train.shape[1],)))
     
     # Number of hidden layers
     n_layers = trial.suggest_int("n_layers", 1, 6)
     
-    x = input_layer
     for i in range(n_layers):
         n_units = trial.suggest_int(f"n_units_l{i}", 16, 400)
         dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
 
-        x = layers.Dense(n_units)(x)
-        x = layers.Activation('relu')(x)
+        model.add(layers.Dense(n_units, activation=None))
+        model.add(layers.Activation('relu'))
         
         if dropout_rate > 0:
-            x = layers.Dropout(rate=dropout_rate)(x)
+            model.add(layers.Dropout(rate=dropout_rate))
     
-    # Create three output layers
-    output1 = layers.Dense(1, activation='linear', name='cost')(x)
-    output2 = layers.Dense(1, activation='linear', name='MRd')(x)
-    output3 = layers.Dense(1, activation='linear', name='As1')(x)
-    
-    model = keras.Model(inputs=input_layer, outputs=[output1, output2, output3])
+    # Final layer with 1 output
+    model.add(layers.Dense(1, activation='linear'))
     
     # Learning rate
     lr = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
-    
-    # Compile with metrics for each output
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss='mse',
-        metrics={
-            'cost': 'mse',
-            'MRd': 'mse',
-            'As1': 'mse'
-        }
+        metrics=['mse']    
     )
     return model
 
@@ -98,24 +91,16 @@ def objective(trial):
     )
     
     history = model.fit(
-        X_train, 
-        {'cost': y_train[:,0], 'MRd': y_train[:,1], 'As1': y_train[:,2]},
-        validation_data=(
-            X_val, 
-            {'cost': y_val[:,0], 'MRd': y_val[:,1], 'As1': y_val[:,2]}
-        ),
+        X_train, y_train,
+        validation_data=(X_val, y_val),
         epochs=150,
         batch_size=batch_size,
         callbacks=[early_stop],
         verbose=0
     )
     
-    val_loss = model.evaluate(
-        X_val, 
-        {'cost': y_val[:,0], 'MRd': y_val[:,1], 'As1': y_val[:,2]}, 
-        verbose=0
-    )
-    return val_loss[0]  # Return the total loss
+    val_loss, _ = model.evaluate(X_val, y_val, verbose=0)
+    return val_loss
 
 # ============================================
 # Run the Optuna Study

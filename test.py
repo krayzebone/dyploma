@@ -41,7 +41,7 @@ def calc_PT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     
     xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -49,11 +49,14 @@ def calc_PT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = xeff * beff * fcd / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * beff * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calc_PT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     smax = max(20, fi)
@@ -63,7 +66,7 @@ def calc_PT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
 
     xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -71,11 +74,14 @@ def calc_PT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = xeff * beff * fcd / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * beff * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calc_PT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     smax = max(20, fi)
@@ -85,7 +91,7 @@ def calc_PT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
 
     xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -93,11 +99,14 @@ def calc_PT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = xeff * beff * fcd / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * beff * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calc_RZT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     a1 = cnom + fi / 2 + fi_str
@@ -107,7 +116,7 @@ def calc_RZT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
                              hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -115,11 +124,14 @@ def calc_RZT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calc_RZT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     smax = max(20, fi)
@@ -130,7 +142,7 @@ def calc_RZT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
                              hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -138,11 +150,14 @@ def calc_RZT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calc_RZT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     smax = max(20, fi)
@@ -153,7 +168,7 @@ def calc_RZT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
                              hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
     if xeff is None:
-        return float('inf'), float('inf'), float('inf')
+        return float('inf'), float('inf'), float('inf'), None
 
     ksieff = xeff / d
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
@@ -161,11 +176,14 @@ def calc_RZT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     if ksieff <= ksiefflim:
         As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
         As2 = 0
+        reinforcement_type = '1r'
     else:
+        xeff = ksiefflim * d
         As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
+        reinforcement_type = '2r'
 
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2)
+    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
 
 def calculate_number_of_rods(As: float, fi: float) -> tuple:
     if As <= 0 or math.isinf(As):
@@ -198,6 +216,7 @@ def find_optimal_scenario(inputs, possible_fi, possible_fck):
         'fi': None,
         'type': None,
         'layers': None,
+        'reinforcement_type': None,
         'As1': None,
         'As2': None,
         'num_rods_As1': None,
@@ -223,7 +242,7 @@ def find_optimal_scenario(inputs, possible_fi, possible_fck):
                 func = globals()[f'calc_{scenario_type}_{layers}r_plus']
 
                 try:
-                    As1, As2, cost = func(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck)
+                    As1, As2, cost, reinforcement_type = func(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck)
                     num_rods_As1, actual_As1 = calculate_number_of_rods(As1, fi)
                     num_rods_As2, actual_As2 = calculate_number_of_rods(As2, fi)
                     rods_fit = (check_rods_fit(bw, cnom, num_rods_As1, fi, smax, layers) and 
@@ -239,6 +258,7 @@ def find_optimal_scenario(inputs, possible_fi, possible_fck):
                         'fck': fck,
                         'type': scenario_type,
                         'layers': layers,
+                        'reinforcement_type': reinforcement_type,
                         'As1': As1 if not math.isinf(As1) else None,
                         'As2': As2 if not math.isinf(As2) else None,
                         'num_rods_As1': num_rods_As1,
@@ -268,7 +288,7 @@ def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
     # Reorder columns with input parameters first
     columns_order = [
         'MEd', 'beff', 'bw', 'h', 'hf', 'fck', 'fi',
-        'type', 'layers', 'cost',
+        'type', 'layers', 'reinforcement_type', 'cost',
         'As1', 'As2', 'actual_As1', 'actual_As2',
         'num_rods_As1', 'num_rods_As2', 'fit_check'
     ]
@@ -289,7 +309,7 @@ def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
 
 if __name__ == '__main__':
     inputs = {
-        'MEd': 480,
+        'MEd': 980,
         'beff': 450,
         'bw': 300,
         'h': 450,
@@ -309,6 +329,7 @@ if __name__ == '__main__':
     print(f"  concrete fck = C{best['fck']}")
     print(f"  bar ∅ = {best['fi']} mm")
     print(f"  moment region = {best['type']} with {best['layers']} layer(s)")
+    print(f"  Reinforcement type = {'Single (1r)' if best['reinforcement_type'] == '1r' else 'Double (2r)'}")
     print(f"  Required As1 = {best['As1']:.1f} mm², As2 = {best['As2']:.1f} mm²")
     print(f"  Number of rods: As1 = {best['num_rods_As1']}, As2 = {best['num_rods_As2']}")
     print(f"  Actual provided: As1 = {best['actual_As1']:.1f} mm², As2 = {best['actual_As2']:.1f} mm²")
