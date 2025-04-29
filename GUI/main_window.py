@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QTabWidget
 from GUI.tabs.main_tab import MainTab
 from GUI.tabs.beam_tab import BeamTab
-from GUI.tabs.section_tab import SectionTab
+from GUI.tabs.T_section_tab import SectionTab
 from GUI.tabs.rect_tab import OptimizeRectSection
 
 class MainWindow(QTabWidget):
@@ -9,12 +9,12 @@ class MainWindow(QTabWidget):
         super().__init__()
         self.main_tab = MainTab()
         self.beam_tab = BeamTab()
-        self.section_tab = SectionTab()
+        self.T_section_tab = SectionTab()
         self.optimize_rect_section_tab = OptimizeRectSection()
 
         self.addTab(self.main_tab, "1. Wstęp")
         self.addTab(self.beam_tab, "2. Belka")
-        self.addTab(self.section_tab, "3. Przekrój")
+        self.addTab(self.T_section_tab, "3. Przekrój")
         self.addTab(self.optimize_rect_section_tab, "4. Płyta pomostowa")
 
         # Connect
