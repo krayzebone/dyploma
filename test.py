@@ -2,6 +2,9 @@ import math
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle, Polygon
+import matplotlib.text as mtext
 
 def quadratic_equation(a: float, b: float, c: float, limit: float) -> float:
     """Solve quadratic equation and return solution within (0, limit) if exists."""
@@ -307,9 +310,55 @@ def save_to_excel(all_scenarios, filename="scenarios_results.xlsx"):
             max_length = max(len(str(cell.value)) for cell in column)
             worksheet.column_dimensions[column[0].column_letter].width = min(max_length + 2, 30)
 
+def draw_cross_section(beff, bw, h, hf, filename="cross_section.png"):
+    """Draw the T-beam cross-section with dimensions"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create T-beam shape
+    flange = Rectangle((0, h-hf), beff, hf, linewidth=1, edgecolor='black', facecolor='lightgray')
+    web = Rectangle((0, 0), bw, h-hf, linewidth=1, edgecolor='black', facecolor='lightgray')
+    
+    ax.add_patch(flange)
+    ax.add_patch(web)
+    
+    # Set axis limits
+    ax.set_xlim(-50, beff + 50)
+    ax.set_ylim(-50, h + 50)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    
+    # Add dimensions
+    def add_dimension(x1, x2, y, text, offset=20, horizontal=True):
+        if horizontal:
+            ax.plot([x1, x1], [y, y+offset], 'k-', lw=0.5)
+            ax.plot([x2, x2], [y, y+offset], 'k-', lw=0.5)
+            ax.plot([x1, x2], [y+offset, y+offset], 'k-', lw=0.5)
+            ax.text((x1+x2)/2, y+offset+10, text, ha='center', va='bottom')
+        else:
+            ax.plot([x1, x1+offset], [y, y], 'k-', lw=0.5)
+            ax.plot([x2, x2+offset], [y, y], 'k-', lw=0.5)
+            ax.plot([x1+offset, x2+offset], [y, y], 'k-', lw=0.5)
+            ax.text(x1+offset+10, y, text, ha='left', va='center', rotation=90)
+    
+    # Horizontal dimensions
+    add_dimension(0, bw, -30, f"bw = {bw}mm")
+    add_dimension(0, beff, h+30, f"beff = {beff}mm")
+    
+    # Vertical dimensions
+    add_dimension(beff+30, beff+30, h-hf, f"hf = {hf}mm", horizontal=False)
+    add_dimension(beff+30, beff+30, 0, f"h = {h}mm", horizontal=False)
+    
+    # Add title
+    ax.set_title(f"T-Beam Cross-Section\n(bw={bw}mm, h={h}mm, beff={beff}mm, hf={hf}mm)", pad=20)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
+    return filename
+
 if __name__ == '__main__':
     inputs = {
-        'MEd': 980,
+        'MEd': 880,
         'beff': 450,
         'bw': 300,
         'h': 450,
@@ -335,3 +384,6 @@ if __name__ == '__main__':
     print(f"  Actual provided: As1 = {best['actual_As1']:.1f} mm², As2 = {best['actual_As2']:.1f} mm²")
     print(f"  Do rods fit in section? {'Yes' if best['fit_check'] else 'No'}")
     print(f"  total cost = {best['cost']:.2f} zł")
+
+    drawing_file = draw_cross_section(inputs['beff'], inputs['bw'], inputs['h'], inputs['hf'])
+    print(f"Cross-section drawing saved to {drawing_file}")
