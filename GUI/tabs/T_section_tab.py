@@ -61,6 +61,7 @@ def calc_cost(
     conc_cost = conc_area * concrete_cost_by_class[int(fck)]
     return steel_cost + conc_cost
 
+
 def calc_PT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
     a1 = cnom + fi / 2 + fi_str
     a2 = cnom + fi / 2 + fi_str
@@ -317,10 +318,163 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
+from PyQt6.QtGui import QPainter, QPen, QColor, QFontMetrics, QBrush
+from PyQt6.QtWidgets import QDialog 
 
+# ---------------------------------------------------------------------------
+# 2)  T-section drawing widget – add anywhere above SectionTab
+# ---------------------------------------------------------------------------
+class SectionView(QDialog):
+    """
+    Window that draws the optimal T-section with dimensions and reinforcement.
+    """
+    def __init__(
+        self,
+        beff: float, bw: float, h: float, hf: float,                 # geometry
+        fi: float, n_bars: int, layers: int,                        # reinforcement
+        cnom: float, fi_str: float,                                 # cover / stirrup
+        parent=None
+    ):
+        super().__init__(parent)
+        self.beff, self.bw, self.h, self.hf = beff, bw, h, hf
+        self.fi, self.n_bars, self.layers = fi, n_bars, layers
+        self.cnom, self.fi_str = cnom, fi_str
+        self.smax = max(20, fi)
+
+        self.setWindowTitle("Optimal T-section")
+        self.resize(600, 500)  # Slightly larger for better visibility
+
+    def paintEvent(self, event):
+        qp = QPainter(self)
+        qp.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # ---------- overall scale ----------
+        margin = 0.10
+        w_pix, h_pix = self.width(), self.height()
+        scale = min(
+            (1 - 2 * margin) * w_pix / max(self.beff, self.bw),
+            (1 - 2 * margin) * h_pix / self.h
+        )
+
+        # --------------------------- geometry in pixels ----------------------
+        x_center = int(w_pix / 2)
+        y_top = int(margin * h_pix)
+
+        flange_w = int(self.beff * scale)
+        flange_h = int(self.hf * scale)
+        web_w = int(self.bw * scale)
+        web_h = int((self.h - self.hf) * scale)
+
+        flange_x = x_center - flange_w // 2
+        flange_y = y_top
+        web_x = x_center - web_w // 2
+        web_y = flange_y + flange_h
+
+        # ------------------ draw concrete outline ----------------------------
+        qp.setPen(QPen(QColor("black"), 2))
+        qp.drawRect(flange_x, flange_y, flange_w, flange_h)
+        qp.drawRect(web_x, web_y, web_w, web_h)
+
+        # ------------------ draw reinforcement bars --------------------------
+        self._draw_bars(qp, scale, web_x, web_y, web_w, web_h)
+
+        # ------------------ draw dimension strings --------------------------
+        qp.setPen(QPen(QColor("blue"), 1))
+        off = 20
+        self._dim_line(qp, flange_x, flange_y - off, flange_w,
+                      f"beff = {self.beff:.0f} mm", horizontal=True)
+        self._dim_line(qp, web_x, web_y + web_h + off, web_w,
+                      f"bw = {self.bw:.0f} mm", horizontal=True)
+        self._dim_line(qp, flange_x + flange_w + off, flange_y,
+                      web_h + flange_h, f"h = {self.h:.0f} mm", horizontal=False)
+        self._dim_line(qp, flange_x - off - 30, flange_y, flange_h,
+                      f"hf = {self.hf:.0f} mm", horizontal=False)
+
+    def _draw_bars(self, qp: QPainter, scale: float,
+                  web_x: int, web_y: int, web_w: int, web_h: int):
+        if self.n_bars == 0:
+            return
+
+        # Calculate a1 (distance from edge to first bar center)
+        if self.layers == 1:
+            a1_mm = self.cnom + self.fi_str + self.fi / 2
+        elif self.layers == 2:
+            a1_mm = self.cnom + self.fi_str + self.fi + self.smax / 2
+        else:  # 3 layers
+            a1_mm = self.cnom + self.fi_str + 1.5 * self.fi + self.smax
+
+        a1_px = int(a1_mm * scale)
+        fi_px = int(self.fi * scale)
+
+        # Calculate available width between bar centers
+        available_width = web_w - 2 * a1_px
+        if available_width <= 0:
+            return  # Not enough space
+
+        # Calculate bar positions
+        if self.n_bars == 1:
+            xs = [web_x + web_w // 2]  # Single bar in center
+        else:
+            spacing = available_width / (self.n_bars - 1)
+            xs = [web_x + a1_px + i * spacing for i in range(self.n_bars)]
+
+        # Calculate vertical positions for each layer
+        cover_bottom = (self.cnom + self.fi_str + self.fi / 2) * scale
+        y_first = int(web_y + web_h - cover_bottom)
+        pitch_v = int((self.fi + self.smax) * scale)
+        y_rows = [y_first - i * pitch_v for i in range(min(self.layers, 3))]
+
+        # Distribute bars to layers
+        bars_per_layer = [self.n_bars // self.layers] * self.layers
+        bars_per_layer[0] += self.n_bars - sum(bars_per_layer)  # Add remainder to first layer
+
+        qp.setBrush(QBrush(QColor("#4444ff")))
+        qp.setPen(QPen(QColor("black"), 1))
+
+        bar_index = 0
+        for layer, n_bars in enumerate(bars_per_layer):
+            if n_bars == 0:
+                continue
+            y = int(y_rows[layer])
+            layer_xs = xs[bar_index:bar_index + n_bars]
+            bar_index += n_bars
+            
+            for x in layer_xs:
+                x_pos = int(x - fi_px / 2)
+                y_pos = int(y - fi_px / 2)
+                qp.drawEllipse(x_pos, y_pos, fi_px, fi_px)
+
+    def _dim_line(self, qp: QPainter, x: int, y: int, length_px: int,
+                 text: str, *, horizontal: bool) -> None:
+        fm = QFontMetrics(qp.font())
+        arrow = 5
+
+        if horizontal:
+            qp.drawLine(x, y, x + length_px, y)
+            qp.drawLine(x, y, x, y - arrow)
+            qp.drawLine(x + length_px, y, x + length_px, y - arrow)
+            text_w = fm.horizontalAdvance(text)
+            qp.drawText(x + (length_px - text_w) // 2, y - arrow - 4, text)
+        else:
+            qp.drawLine(x, y, x, y + length_px)
+            qp.drawLine(x, y, x - arrow, y)
+            qp.drawLine(x, y + length_px, x - arrow, y + length_px)
+            qp.save()
+            qp.translate(x + arrow + 4, y + length_px / 2)
+            qp.rotate(-90)
+            text_w = fm.horizontalAdvance(text)
+            qp.drawText(-text_w // 2, 0, text)
+            qp.restore()
+
+# ---------------------------------------------------------------------------
+# 3)  SectionTab – NEW “Show section” button & plumbing
+#    (only the changed/added lines are shown, context lines are kept
+#     so you can find the spots quickly)
+# ---------------------------------------------------------------------------
 
 class SectionTab(QWidget):
     """One tab that collects geometry + material data and shows the best result."""
@@ -336,11 +490,36 @@ class SectionTab(QWidget):
         root.addWidget(self.status)
 
         grid = QGridLayout()
-        self._add_inputs(grid)
-        self._add_fck_group(grid)
-        self._add_fi_group(grid)
-        self._add_results_group(grid)
-        self._add_button(grid)
+
+        # --- top row: three group boxes side‑by‑side ------------------------
+        box_params = self._create_param_box()
+        box_fck    = self._create_fck_box()
+        box_fi     = self._create_fi_box()
+
+        # size policies – let material boxes grow equally; parameters fixed min width
+        box_fck.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        box_fi.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        hbox_top = QHBoxLayout()
+        hbox_top.addWidget(box_params)
+        hbox_top.addWidget(box_fck)
+        hbox_top.addWidget(box_fi)
+        hbox_top.setStretchFactor(box_fck, 1)
+        hbox_top.setStretchFactor(box_fi,  1)
+
+        grid.addLayout(hbox_top, 0, 0, 1, 2)
+
+        # --- calculate button ----------------------------------------------
+        self._add_button(grid, row=1)
+
+        # -------- NEW: extra button just under the calculate one ------------
+        self.btn_draw = QPushButton("Pokaż przekrój")          # NEW
+        self.btn_draw.setEnabled(False)                        # NEW – enabled once we have a result
+        self.btn_draw.clicked.connect(self._open_section_win)  # NEW
+        grid.addWidget(self.btn_draw, 2, 0, 1, 2) 
+
+        # --- results section -----------------------------------------------
+        self._add_results_group(grid, row=3)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -350,7 +529,7 @@ class SectionTab(QWidget):
         root.addWidget(scroll)
 
     # ---- helpers -----------------------------------------------------------
-    def _add_inputs(self, grid: QGridLayout) -> None:
+    def _create_param_box(self) -> QGroupBox:
         labels = [
             "MEd [kNm]",
             "beff [mm]",
@@ -361,14 +540,18 @@ class SectionTab(QWidget):
             "fi_str [mm]",
         ]
         self.inputs: dict[str, QLineEdit] = {}
+        box = QGroupBox("Parametry przekroju")
+        lay = QGridLayout(box)
         for row, txt in enumerate(labels):
-            grid.addWidget(QLabel(txt), row, 0)
+            lay.addWidget(QLabel(txt), row, 0)
             le = QLineEdit(alignment=Qt.AlignmentFlag.AlignRight)
             le.setPlaceholderText("…")
-            grid.addWidget(le, row, 1)
+            lay.addWidget(le, row, 1)
             self.inputs[txt] = le
+        return box
 
-    def _add_fck_group(self, grid: QGridLayout) -> None:
+    # --- Concrete class group ----------------------------------------------
+    def _create_fck_box(self) -> QGroupBox:
         self.fck_opts = {
             "C12/15": 12,
             "C16/20": 16,
@@ -381,15 +564,21 @@ class SectionTab(QWidget):
             "C50/60": 50,
         }
         self.fck_check: dict[str, QCheckBox] = {}
-        box = QGroupBox("Concrete class fck")
-        lay = QVBoxLayout(box)
-        for k in self.fck_opts:
-            cb = QCheckBox(k)
-            lay.addWidget(cb)
-            self.fck_check[k] = cb
-        grid.addWidget(box, 7, 0, 1, 2)
 
-    def _add_fi_group(self, grid: QGridLayout) -> None:
+        box = QGroupBox("Klasa betonu")
+        lay = QVBoxLayout(box)
+        for label in self.fck_opts:
+            cb = QCheckBox(label)
+            self.fck_check[label] = cb
+            lay.addWidget(cb)
+        lay.addStretch()
+        btn_all = QPushButton("Zaznacz wszystkie")
+        btn_all.clicked.connect(lambda _=None: [cb.setChecked(True) for cb in self.fck_check.values()])
+        lay.addWidget(btn_all)
+        return box
+
+    # --- Main‑bar diameter group -------------------------------------------
+    def _create_fi_box(self) -> QGroupBox:
         self.fi_opts = {
             "Ø6": 6,
             "Ø8": 8,
@@ -405,50 +594,70 @@ class SectionTab(QWidget):
             "Ø32": 32,
         }
         self.fi_check: dict[str, QCheckBox] = {}
-        box = QGroupBox("Main-bar diameter")
+
+        box = QGroupBox("Średnica zbrojenia")
         lay = QVBoxLayout(box)
-        for k in self.fi_opts:
-            cb = QCheckBox(k)
+        for label in self.fi_opts:
+            cb = QCheckBox(label)
+            self.fi_check[label] = cb
             lay.addWidget(cb)
-            self.fi_check[k] = cb
-        grid.addWidget(box, 8, 0, 1, 2)
+        lay.addStretch()
+        btn_all = QPushButton("Zaznacz wszystkie")
+        btn_all.clicked.connect(lambda _=None: [cb.setChecked(True) for cb in self.fi_check.values()])
+        lay.addWidget(btn_all)
+        return box
 
-    def _add_button(self, grid: QGridLayout) -> None:
-        self.btn = QPushButton("Calculate optimal solution")
+    # --- Calculate button ---------------------------------------------------
+    def _add_button(self, grid: QGridLayout, *, row: int) -> None:
+        self.btn = QPushButton("Oblicz optymalne rozwiązanie")
         self.btn.clicked.connect(self._run_optimiser)
-        grid.addWidget(self.btn, 9, 0, 1, 2)
+        grid.addWidget(self.btn, row, 0, 1, 2)
 
-    def _add_results_group(self, grid: QGridLayout) -> None:
+    # --- Results ------------------------------------------------------------
+    def _add_results_group(self, grid: QGridLayout, *, row: int) -> None:
         labels = [
-            "Concrete Class",
-            "Rebar Diameter",
-            "Moment Region",
-            "Layers",
-            "Reinforcement Type",
-            "As1 [mm²]",
-            "As2 [mm²]",
-            "Number of rods (As1)",
-            "Number of rods (As2)",
-            "Actual As1 [mm²]",
-            "Actual As2 [mm²]",
-            "Rods Fit?",
-            "Total Cost [zł]",
+            "Klasa betonu: ",
+            "Średnica zbrojenia: ",
+            "Rzędy zbrojenia: ",
+            "Typ zbrojenia przekroju: ",
+            "Liczba warstw zbrojenia głównego: ",
+            "As1_req [mm²]: ",
+            "As2_req [mm²]: ",
+            "Liczba prętów rozciąganych: ",
+            "Liczba prętów ściskanych: ",
+            "As1_prov [mm²]",
+            "As2_prov [mm²]",
+            "Rozstaw prętów: ",
+            "Całkowity koszt [zł/mb]",
         ]
         self.result: dict[str, QLineEdit] = {}
-        box = QGroupBox("Optimal solution")
+        box = QGroupBox("Optymalny przekrój")
         lay = QVBoxLayout(box)
-
         for txt in labels:
-            row = QHBoxLayout()
-            row.addWidget(QLabel(txt))
+            row_h = QHBoxLayout()
+            row_h.addWidget(QLabel(txt))
             out = QLineEdit(readOnly=True, alignment=Qt.AlignmentFlag.AlignRight)
-            row.addWidget(out)
-            lay.addLayout(row)
+            row_h.addWidget(out)
+            lay.addLayout(row_h)
             self.result[txt] = out
-
-        grid.addWidget(box, 10, 0, 1, 2)
+        grid.addWidget(box, row, 0, 1, 2)
 
     # ---------- logic -------------------------------------------------------
+    def _open_section_win(self):
+        if not hasattr(self, "_last_params") or not hasattr(self, "_best"):
+            self.status.setText("❌ Najpierw wykonaj obliczenia.")
+            return
+
+        p = self._last_params
+        b = self._best
+        dlg = SectionView(
+            p["beff"], p["bw"], p["h"], p["hf"],     # geometry
+            b["fi"], b["num_rods_As1"], b["layers"], # reinforcement
+            p["cnom"], p["fi_str"],                  # cover / stirrup
+            self
+        )
+        dlg.exec()   
+
     def _float(self, le: QLineEdit, name: str) -> float | None:
         try:
             val = float(le.text())
@@ -490,32 +699,36 @@ class SectionTab(QWidget):
 
         try:
             best = find_optimal_scenario(params, fi_list, fck_list)
+            self._best = best
         except Exception as exc:  # pragma: no cover
             self.status.setText(f"❌ optimiser error: {exc}")
             return
 
         if not best or best["cost"] == float("inf"):
-            self.status.setText("❌ No valid solution.")
+            self.status.setText("❌ Brak rozwiązań.")
             return
 
+        # Store the parameters for the drawing
+        self._last_params = params
+        self.btn_draw.setEnabled(True)  # Enable the draw button
+        
         self._show(best)
-        self.status.setText("✓ Optimal solution found.")
+        self.status.setText("✓ Optimalny przekrój znaleziony.")
 
     def _show(self, b: dict) -> None:
-        self.result["Concrete Class"].setText(f"C{b['fck']}/{b['fck']+5}")
-        self.result["Rebar Diameter"].setText(f"Ø{b['fi']} mm")
-        self.result["Moment Region"].setText(b["type"])
-        self.result["Layers"].setText(str(b["layers"]))
-        self.result["Reinforcement Type"].setText(b["reinforcement_type"])
-        self.result["As1 [mm²]"].setText(f"{b['As1']:.1f}")
-        self.result["As2 [mm²]"].setText(f"{b['As2']:.1f}")
-        self.result["Number of rods (As1)"].setText(str(b["num_rods_As1"]))
-        self.result["Number of rods (As2)"].setText(str(b["num_rods_As2"]))
-        self.result["Actual As1 [mm²]"].setText(f"{b['actual_As1']:.1f}")
-        self.result["Actual As2 [mm²]"].setText(f"{b['actual_As2']:.1f}")
-        self.result["Rods Fit?"].setText("Yes" if b["fit_check"] else "No")
-        self.result["Total Cost [zł]"].setText(f"{b['cost']:.2f}")
-
+        self.result["Klasa betonu: "].setText(f"C{b['fck']}/{b['fck']+5}")
+        self.result["Średnica zbrojenia: "].setText(f"Ø{b['fi']} mm")
+        self.result["Rzędy zbrojenia: "].setText(b["type"])
+        self.result["Typ zbrojenia przekroju: "].setText(str(b["layers"]))
+        self.result["Liczba warstw zbrojenia głównego: "].setText(b["reinforcement_type"])
+        self.result["As1_req [mm²]: "].setText(f"{b['As1']:.1f}")
+        self.result["As2_req [mm²]: "].setText(f"{b['As2']:.1f}")
+        self.result["Liczba prętów rozciąganych: "].setText(str(b["num_rods_As1"]))
+        self.result["Liczba prętów ściskanych: "].setText(str(b["num_rods_As2"]))
+        self.result["As1_prov [mm²]"].setText(f"{b['actual_As1']:.1f}")
+        self.result["As2_prov [mm²]"].setText(f"{b['actual_As2']:.1f}")
+        self.result["Rozstaw prętów: "].setText("Yes" if b["fit_check"] else "No")
+        self.result["Całkowity koszt [zł/mb]"].setText(f"{b['cost']:.2f}")
 
 # -----------------------  run it  -------------------------------------------
 
