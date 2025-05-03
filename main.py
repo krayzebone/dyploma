@@ -12,4 +12,3 @@ if __name__ == "__main__":
     main()
 
 #python -m PyInstaller --onefile --add-data "C:/Users/marci/Desktop/Praca_dyplomowa/Projekt_sieci_neuronowej/moj_program/resources/images;resources/images" main.py
-+''
