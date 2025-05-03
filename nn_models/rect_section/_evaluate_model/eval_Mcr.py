@@ -35,20 +35,11 @@ MAX_SAMPLES = 100_000
 #    (Make sure these match exactly how you trained the model)
 # --------------------------------------------------------------------------------
 
-def no_transform(x):
-    return x
-
 def log_transform(x):
     return np.log(x)
 
 def log_inverse(x):
     return np.exp(x)
-
-def sqrt_transform(x):
-    return np.sqrt(x)
-
-def sqrt_inverse(x):
-    return x**2
 
 # We will load the TRANSFORMATION_CONFIG from disk
 # but here is the fallback structure:

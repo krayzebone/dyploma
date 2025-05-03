@@ -202,8 +202,6 @@ def check_rods_fit(bw: float, cnom: float, num_rods: int, fi: float, smax: float
     available_width = layers * bw
     return required_width <= available_width
 
-import math
-
 def find_optimal_scenario(inputs, possible_fi, possible_fck):
     MEd = inputs['MEd']
     beff = inputs['beff']

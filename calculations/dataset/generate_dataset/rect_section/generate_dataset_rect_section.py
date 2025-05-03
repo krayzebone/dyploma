@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 10000000
+num_iterations = 100000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -152,8 +152,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     x_I = S_cs / A_cs
 
     # Moment of inertia (uncracked)
-    I_I = b*(h**3)/12 + b*h*(h/2 - x_I)**2 \
-          + alpha_cs*(A_s1*(d - x_I)**2 + A_s2*(x_I - a_1)**2)
+    I_I = b*(h**3)/12 + b*h*(h/2 - x_I)**2 + alpha_cs*(A_s1*(d - x_I)**2 + A_s2*(x_I - a_1)**2)
 
     # Section modulus for tension
     W_cs = I_I / (h - x_I)
@@ -231,28 +230,43 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     # Store final data
     data_entry = {
-        'MEd': M_Ed / 1e6,
         'MRd': M_Rd / 1e6,
+        'MEd': M_Ed / 1e6,
         'b': b,
-        'd': d,
         'h': h,
-        'a1': a_1,
         'fi': fi_gl,
         'fck': f_ck,
+        'a1': a_1,
+        'd': d,
         'n1': n1,
         'n2': n2,
         'ro1': ro_s1,
         'ro2': ro_s2,
         'wk': w_k,
         'Mcr': M_cr / 1e6,
-        'cost': cost
+        'cost': cost,
+        'Ac': A_c,
+        'u': u,
+        'h0': h_0,
+        'fiRH': fi_RH,
+        'Bt0': Beta_t0,
+        'Bfcm': Beta_fcm,
+        'fi0': fi_0,
+        'Eceff': E_c_eff,
+        'alphacs': alpha_cs,
+        'Acs': A_cs,
+        'Scs': S_cs,
+        'X_I': x_I,
+        'I_I': I_I,
+        'Wcs': W_cs,
+
     }
     data_list.append(data_entry)
 
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_parquet("dataset.parquet", index=False)
+    df.to_csv("dataset.csv", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

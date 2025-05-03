@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QFormLayout
 )
 
+ def calculate_ro(MEd, b, h, fi, fck)
+
 class OptimizeRectSection(QWidget):
     """
     A new tab to collect inputs for:
