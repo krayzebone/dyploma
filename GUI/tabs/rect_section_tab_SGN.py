@@ -4,10 +4,6 @@ import os
 import sys
 from dataclasses import dataclass
 
-import joblib
-import numpy as np
-import pandas as pd
-import tensorflow as tf
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
@@ -26,8 +22,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFontMetrics
 
-# Disable oneDNN optimisation warnings from TF
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
 
 # --------------------  CALCULATION ENGINE  ----------------------------------
 
@@ -140,68 +135,6 @@ def check_rods_fit(b: float, cnom: float, num_rods: int, fi: float, smax: float)
     required = 2 * cnom + num_rods * fi + smax * (num_rods - 1)
     return required <= b
 
-def predict_section(input_dict):
-    """
-    Predict and print results for a concrete section.
-    
-    Args:
-        input_dict (dict): Must contain:
-            MEd, b, h, fck, fi_gl, c_nom, ro1, ro2
-    """
-    MODEL_PATHS = {
-        'Mcr': {
-            'model': r"nn_models\rect_section\Mcr_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\Mcr_model\scaler_y.pkl"
-        },
-        'MRd': {
-            'model': r"nn_models\rect_section\MRd_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\MRd_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\MRd_model\scaler_y.pkl"
-        },
-        'Wk': {
-            'model': r"nn_models\rect_section\Wk_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\Wk_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\Wk_model\scaler_y.pkl"
-        },
-        'Cost': {
-            'model': r"nn_models\rect_section\cost_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\cost_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\cost_model\scaler_y.pkl"
-        }
-    }
-
-    MODEL_FEATURES = {
-        'Mcr': ['b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
-        'MRd': ['b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
-        'Wk': ['MEd', 'b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
-        'Cost': ['MEd', 'b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2']
-    }
-    # Calculate derived parameters
-    input_dict['d'] = input_dict['h'] - input_dict['c_nom'] - input_dict['fi_gl']/2
-    input_dict['fi'] = input_dict['fi_gl']
-    
-    results = {}
-    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
-        try:
-            # Load model and scalers
-            model = tf.keras.models.load_model(MODEL_PATHS[model_name]['model'], compile=False)
-            X_scaler = joblib.load(MODEL_PATHS[model_name]['scaler_X'])
-            y_scaler = joblib.load(MODEL_PATHS[model_name]['scaler_y'])
-            
-            # Prepare input
-            X = pd.DataFrame([input_dict])[MODEL_FEATURES[model_name]]
-            X_scaled = X_scaler.transform(np.log(X + 1e-8))
-            
-            # Predict and inverse transform
-            pred = np.exp(y_scaler.inverse_transform(model.predict(X_scaled)))[0][0]
-            results[model_name] = pred
-        except Exception as e:
-            print(f"⚠️ Error in {model_name}: {str(e)}")
-            results[model_name] = None
-    
-    return results
-
 
 @dataclass
 class Inputs:
@@ -210,6 +143,16 @@ class Inputs:
     h: float
     cnom: float
     fi_str: float
+
+class CalculationData:
+    def __init__(self):
+        self.MEd = None
+        self.b = None
+        self.h = None
+        self.fi = None
+        self.fck = None
+        self.As1 = None
+        self.As2 = None
 
 
 def find_optimal_scenario(
@@ -263,11 +206,12 @@ def find_optimal_scenario(
 #                           P Y Q T   G U I
 # ---------------------------------------------------------------------------
 
-class RectSectionTab(QWidget):
+class RectSectionTabSGN(QWidget):
     """One tab that collects geometry + material data and shows the best result."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, data_store: CalculationData = None) -> None:
         super().__init__(parent)
+        self.data_store = data_store if data_store else CalculationData()
         self._build_ui()
         self._best: dict | None = None
         self._last_params: dict | None = None
@@ -484,6 +428,15 @@ class RectSectionTab(QWidget):
         if not best or best["cost"] == float("inf"):
             self.status.setText("❌ Brak rozwiązań.")
             return
+        
+        # Store the values in the data store
+        self.data_store.MEd = params["MEd"]
+        self.data_store.b = params["b"]
+        self.data_store.h = params["h"]
+        self.data_store.fi = best["fi"]
+        self.data_store.fck = best["fck"]
+        self.data_store.As1 = best["As1"]
+        self.data_store.As2 = best["As2"]
 
         # Store the parameters for the drawing
         self._last_params = params
@@ -523,7 +476,7 @@ class RectSectionTab(QWidget):
 # ---------------------------------------------------------------------------
 #  Convenience alias – the original code referred to SectionTab
 # ---------------------------------------------------------------------------
-SectionTab = RectSectionTab
+SectionTab = RectSectionTabSGN
 
 # -----------------------  run it  -------------------------------------------
 

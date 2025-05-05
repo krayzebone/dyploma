@@ -2,7 +2,8 @@ from PyQt6.QtWidgets import QTabWidget
 from GUI.tabs.main_tab import MainTab
 from GUI.tabs.beam_tab import BeamTab
 from GUI.tabs.T_section_tab import SectionTab
-from GUI.tabs.rect_tab import RectSectionTab
+from GUI.tabs.rect_section_tab_SGN import RectSectionTabSGN
+from GUI.tabs.rect_section_tab_SGU import RectSectionTabSGU
 
 class MainWindow(QTabWidget):
     def __init__(self):
@@ -10,7 +11,8 @@ class MainWindow(QTabWidget):
         self.main_tab = MainTab()
         self.beam_tab = BeamTab()
         self.T_section_tab = SectionTab()
-        self.optimize_rect_section_tab = RectSectionTab()
+        self.rect_section_tab_SGN = RectSectionTabSGN()
+        self.rect_section_tab_SGU = RectSectionTabSGU()
 
         self.addTab(self.main_tab, "1. Wstęp")
         self.addTab(self.beam_tab, "2. Belka")
