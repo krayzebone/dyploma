@@ -1,9 +1,15 @@
+from __future__ import annotations
+import math
+import os
+import sys
+from dataclasses import dataclass
+
 import joblib
-import numpy as np
 import pandas as pd
+import numpy as np
 import tensorflow as tf
 
-from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -18,24 +24,12 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QTextEdit
 )
 from PyQt6.QtGui import QFontMetrics
+from GUI.tabs.rect_section_tab_SGN import CalculationData
 
 def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
-    """
-    Predict and print results for a concrete section.
-    
-    Args:
-        MEd: Design moment (kNm)
-        b: Section width (mm)
-        h: Section height (mm)
-        fck: Concrete characteristic strength (MPa)
-        fi: Rebar diameter (mm)
-        cnom: Concrete cover (mm)
-        As1: Area of tension reinforcement (mm²)
-        As2: Area of compression reinforcement (mm²)
-    """
+
     MODEL_PATHS = {
         'Mcr': {
             'model': r"nn_models\rect_section\Mcr_model\model.keras",
@@ -108,155 +102,108 @@ def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom:
     
     return results
 
-class RectSectionTabSGU(QObject):
-    data_updated = pyqtSignal()  # Signal for data changes
-    
-    def __init__(self):
-        super().__init__()
-        self.MEd = None
-        self.b = None
-        self.h = None
-        self.fi = None
-        self.fck = None
-        self.As1 = None
-        self.As2 = None
-        self.cnom = None  # Concrete cover
-    
-    def update_data(self, **kwargs):
-        """Update multiple values at once and emit signal"""
-        for key, value in kwargs.items():
-            if value is not None:
-                setattr(self, key, value)
-        self.data_updated.emit()
-
 class RectSectionTabSGU(QWidget):
-    def __init__(self, data_store: CalculationData, parent=None):
+    """Tab that displays the stored calculation results from CalculationData."""
+    
+    def __init__(self, parent: QWidget | None = None, data_store: CalculationData = None) -> None:
         super().__init__(parent)
-        self.data_store = data_store
+        self.data_store = data_store if data_store else CalculationData()
         self._build_ui()
         self._update_display()
         
-        # Connect to data updates
-        self.data_store.data_updated.connect(self._update_display)
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
         
-    def _build_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
-        
-        # Title
-        title = QLabel("Neural Network Predictions")
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
+        # Title label
+        title = QLabel("Stored Calculation Results")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_font = title.font()
+        title_font.setBold(True)
+        title_font.setPointSize(14)
+        title.setFont(title_font)
         layout.addWidget(title)
         
-        # Input parameters display
-        input_group = QGroupBox("Input Parameters")
-        input_layout = QVBoxLayout()
-        self.input_display = QTextEdit()
-        self.input_display.setReadOnly(True)
-        self.input_display.setMinimumHeight(150)
-        input_layout.addWidget(self.input_display)
-        input_group.setLayout(input_layout)
-        layout.addWidget(input_group)
+        # Add some spacing
+        layout.addSpacing(20)
         
-        # Prediction results
-        result_group = QGroupBox("Prediction Results")
-        result_layout = QVBoxLayout()
-        self.prediction_display = QTextEdit()
-        self.prediction_display.setReadOnly(True)
-        self.prediction_display.setMinimumHeight(200)
-        result_layout.addWidget(self.prediction_display)
-        result_group.setLayout(result_layout)
-        layout.addWidget(result_group)
+        # Create the results display group
+        group = QGroupBox("Calculation Parameters and Results")
+        group_layout = QVBoxLayout(group)
         
-        # Buttons
-        btn_layout = QHBoxLayout()
-        self.predict_btn = QPushButton("Run Predictions")
-        self.predict_btn.clicked.connect(self._run_predictions)
-        btn_layout.addWidget(self.predict_btn)
+        # Create the display fields
+        self.result_fields = {}
+        fields = [
+            ("Moment [kNm]", "MEd"),
+            ("Width [mm]", "b"),
+            ("Height [mm]", "h"),
+            ("Reinforcement diameter [mm]", "fi"),
+            ("Concrete class", "fck"),
+            ("Required As1 [mm²]", "As1"),
+            ("Required As2 [mm²]", "As2"),
+            ("Number of tension rods", "num_rods_As1"),
+            ("Number of compression rods", "num_rods_As2"),
+        ]
         
-        self.update_btn = QPushButton("Refresh Inputs")
-        self.update_btn.clicked.connect(self._update_display)
-        btn_layout.addWidget(self.update_btn)
+        for label_text, data_key in fields:
+            hbox = QHBoxLayout()
+            label = QLabel(label_text)
+            label.setFixedWidth(250)
+            output = QLineEdit()
+            output.setReadOnly(True)
+            output.setAlignment(Qt.AlignmentFlag.AlignRight)
+            hbox.addWidget(label)
+            hbox.addWidget(output)
+            group_layout.addLayout(hbox)
+            self.result_fields[data_key] = output
         
-        layout.addLayout(btn_layout)
-        self.setLayout(layout)
+        # Add stretch to push everything up
+        group_layout.addStretch()
+        
+        # Add the group to the main layout
+        layout.addWidget(group)
+        
+        # Add refresh button
+        self.refresh_btn = QPushButton("Refresh Data")
+        self.refresh_btn.clicked.connect(self._update_display)
+        layout.addWidget(self.refresh_btn)
+        
+        # Add stretch to push everything up
+        layout.addStretch()
     
-    def _update_display(self):
-        """Update the input parameters display"""
-        missing_data = []
-        for attr in ['MEd', 'b', 'h', 'fi', 'fck', 'As1', 'cnom']:
-            if getattr(self.data_store, attr, None) is None:
-                missing_data.append(attr)
+    def _update_display(self) -> None:
+        """Update all fields with current data from CalculationData."""
+        # Display basic parameters
+        self.result_fields["MEd"].setText(
+            f"{self.data_store.MEd:.2f}" if self.data_store.MEd is not None else "N/A"
+        )
+        self.result_fields["b"].setText(
+            f"{self.data_store.b:.1f}" if self.data_store.b is not None else "N/A"
+        )
+        self.result_fields["h"].setText(
+            f"{self.data_store.h:.1f}" if self.data_store.h is not None else "N/A"
+        )
+        self.result_fields["fi"].setText(
+            f"{self.data_store.fi:.1f}" if self.data_store.fi is not None else "N/A"
+        )
         
-        if missing_data:
-            self.input_display.setPlainText(
-                f"Waiting for data from Optimizer tab...\n\n"
-                f"Missing parameters: {', '.join(missing_data)}"
-            )
-            self.predict_btn.setEnabled(False)
-            return
+        # Display concrete class if available
+        fck_text = "N/A"
+        if self.data_store.fck is not None:
+            fck_text = f"C{self.data_store.fck}/{self.data_store.fck + 5}"
+        self.result_fields["fck"].setText(fck_text)
         
-        text = f"""MEd = {self.data_store.MEd:.2f} kNm
-b = {self.data_store.b:.1f} mm
-h = {self.data_store.h:.1f} mm
-fi = {self.data_store.fi:.1f} mm
-fck = {self.data_store.fck:.1f} MPa
-As1 = {self.data_store.As1:.1f} mm²
-As2 = {getattr(self.data_store, 'As2', 0):.1f} mm²
-cnom = {self.data_store.cnom:.1f} mm
-"""
-        self.input_display.setPlainText(text.strip())
-        self.predict_btn.setEnabled(True)
-    
-    def _run_predictions(self):
-        """Run the neural network predictions"""
-        try:
-            # Get all required parameters
-            required_params = {
-                'MEd': self.data_store.MEd,
-                'b': self.data_store.b,
-                'h': self.data_store.h,
-                'fck': self.data_store.fck,
-                'fi': self.data_store.fi,
-                'cnom': self.data_store.cnom,
-                'As1': self.data_store.As1,
-                'As2': getattr(self.data_store, 'As2', 0)
-            }
-            
-            if None in required_params.values():
-                missing = [k for k, v in required_params.items() if v is None]
-                self.prediction_display.setPlainText(
-                    f"Error: Missing required parameters:\n{', '.join(missing)}"
-                )
-                return
-            
-            results = predict_section(**required_params)
-            
-            if not results:
-                self.prediction_display.setPlainText("Error: No results returned from prediction")
-                return
-            
-            # Format results
-            result_text = "Neural Network Predictions:\n\n"
-            result_text += f"Cracking Moment (Mcr): {results.get('Mcr', 'N/A'):.2f} kNm\n"
-            result_text += f"Design Moment (MRd): {results.get('MRd', 'N/A'):.2f} kNm\n"
-            result_text += f"Crack Width (Wk): {results.get('Wk', 'N/A'):.4f} mm\n"
-            result_text += f"Estimated Cost: {results.get('Cost', 'N/A'):.2f} PLN/m\n"
-            
-            # Add safety checks if we have MRd and MEd
-            if 'MRd' in results and self.data_store.MEd is not None:
-                try:
-                    safety_factor = results['MRd'] / self.data_store.MEd
-                    result_text += f"\nSafety Factor (MRd/MEd): {safety_factor:.2f}"
-                    if safety_factor < 1.0:
-                        result_text += " ⚠️ (UNSAFE - MRd < MEd)"
-                    else:
-                        result_text += " ✓ (Safe)"
-                except ZeroDivisionError:
-                    result_text += "\nSafety Factor: N/A (MEd is zero)"
-            
-            self.prediction_display.setPlainText(result_text)
-            
-        except Exception as e:
-            self.prediction_display.setPlainText(f"Prediction Error:\n{str(e)}")
+        # Display reinforcement areas
+        self.result_fields["As1"].setText(
+            f"{self.data_store.As1:.1f}" if self.data_store.As1 is not None else "N/A"
+        )
+        self.result_fields["As2"].setText(
+            f"{self.data_store.As2:.1f}" if self.data_store.As2 is not None else "N/A"
+        )
+
+        # Display number of rods
+        self.result_fields["num_rods_As1"].setText(
+            str(self.data_store.num_rods_As1) if self.data_store.num_rods_As1 is not None else "N/A"
+        )
+        self.result_fields["num_rods_As2"].setText(
+            str(self.data_store.num_rods_As2) if self.data_store.num_rods_As2 is not None else "N/A"
+        )

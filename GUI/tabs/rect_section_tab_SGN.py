@@ -153,6 +153,8 @@ class CalculationData:
         self.fck = None
         self.As1 = None
         self.As2 = None
+        self.num_rods_As1 = None  # Number of tension rods
+        self.num_rods_As2 = None  # Number of compression rods
 
 
 def find_optimal_scenario(
@@ -437,6 +439,8 @@ class RectSectionTabSGN(QWidget):
         self.data_store.fck = best["fck"]
         self.data_store.As1 = best["As1"]
         self.data_store.As2 = best["As2"]
+        self.data_store.num_rods_As1 = best["num_rods_As1"]  # Store number of tension rods
+        self.data_store.num_rods_As2 = best["num_rods_As2"]  # Store number of compression rods
 
         # Store the parameters for the drawing
         self._last_params = params

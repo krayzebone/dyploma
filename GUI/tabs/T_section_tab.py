@@ -476,7 +476,7 @@ class SectionView(QDialog):
 #     so you can find the spots quickly)
 # ---------------------------------------------------------------------------
 
-class SectionTab(QWidget):
+class TSectionTab(QWidget):
     """One tab that collects geometry + material data and shows the best result."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
