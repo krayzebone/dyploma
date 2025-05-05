@@ -1,7 +1,9 @@
 import joblib
 import pandas as pd
 import numpy as np
+import PyQt6
 import tensorflow as tf
+
 
 
 def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):

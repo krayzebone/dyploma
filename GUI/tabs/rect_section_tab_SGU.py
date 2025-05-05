@@ -156,6 +156,50 @@ class RectSectionTabSGU(QWidget):
             group_layout.addLayout(hbox)
             self.result_fields[data_key] = output
         
+        # Add input fields for n1 and n2
+        hbox_n1 = QHBoxLayout()
+        label_n1 = QLabel("Input number of tension rods (n1):")
+        label_n1.setFixedWidth(250)
+        self.input_n1 = QLineEdit()
+        self.input_n1.setAlignment(Qt.AlignmentFlag.AlignRight)
+        hbox_n1.addWidget(label_n1)
+        hbox_n1.addWidget(self.input_n1)
+        group_layout.addLayout(hbox_n1)
+        
+        hbox_n2 = QHBoxLayout()
+        label_n2 = QLabel("Input number of compression rods (n2):")
+        label_n2.setFixedWidth(250)
+        self.input_n2 = QLineEdit()
+        self.input_n2.setAlignment(Qt.AlignmentFlag.AlignRight)
+        hbox_n2.addWidget(label_n2)
+        hbox_n2.addWidget(self.input_n2)
+        group_layout.addLayout(hbox_n2)
+        
+        # Add predict button
+        self.predict_btn = QPushButton("Predict")
+        self.predict_btn.clicked.connect(self._on_predict)
+        group_layout.addWidget(self.predict_btn)
+        
+        # Add predicted results fields
+        predicted_fields = [
+            ("Predicted Mcr [kNm]", "pred_Mcr"),
+            ("Predicted MRd [kNm]", "pred_MRd"),
+            ("Predicted Wk [mm]", "pred_Wk"),
+            ("Predicted Cost", "pred_Cost")
+        ]
+        
+        for label_text, data_key in predicted_fields:
+            hbox = QHBoxLayout()
+            label = QLabel(label_text)
+            label.setFixedWidth(250)
+            output = QLineEdit()
+            output.setReadOnly(True)
+            output.setAlignment(Qt.AlignmentFlag.AlignRight)
+            hbox.addWidget(label)
+            hbox.addWidget(output)
+            group_layout.addLayout(hbox)
+            self.result_fields[data_key] = output
+        
         # Add stretch to push everything up
         group_layout.addStretch()
         
@@ -207,3 +251,40 @@ class RectSectionTabSGU(QWidget):
         self.result_fields["num_rods_As2"].setText(
             str(self.data_store.num_rods_As2) if self.data_store.num_rods_As2 is not None else "N/A"
         )
+    
+    def _on_predict(self) -> None:
+        """Handle the predict button click."""
+        try:
+            # Get input values
+            n1 = int(self.input_n1.text())
+            n2 = int(self.input_n2.text())
+            
+            # Get other required parameters
+            MEd = float(self.result_fields["MEd"].text()) if self.result_fields["MEd"].text() != "N/A" else None
+            b = float(self.result_fields["b"].text()) if self.result_fields["b"].text() != "N/A" else None
+            h = float(self.result_fields["h"].text()) if self.result_fields["h"].text() != "N/A" else None
+            fi = float(self.result_fields["fi"].text()) if self.result_fields["fi"].text() != "N/A" else None
+            fck_text = self.result_fields["fck"].text()
+            fck = float(fck_text.split('/')[0][1:]) if fck_text != "N/A" else None
+            cnom = 30  # Assuming a default concrete cover if not available
+            
+            # Calculate rebar areas
+            As1 = n1 * math.pi * (fi ** 2) / 4
+            As2 = n2 * math.pi * (fi ** 2) / 4
+            
+            # Make prediction
+            results = predict_section(MEd, b, h, fck, fi, cnom, As1, As2)
+            
+            # Display results
+            self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
+            self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
+            self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
+            self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+            
+        except ValueError as e:
+            print(f"Error in input values: {str(e)}")
+            # Clear prediction fields if there's an error
+            self.result_fields["pred_Mcr"].setText("Invalid input")
+            self.result_fields["pred_MRd"].setText("Invalid input")
+            self.result_fields["pred_Wk"].setText("Invalid input")
+            self.result_fields["pred_Cost"].setText("Invalid input")

@@ -1,4 +1,5 @@
 import sys
+import tensorflow
 from PyQt6.QtWidgets import QApplication
 from GUI.main_window import MainWindow
 
