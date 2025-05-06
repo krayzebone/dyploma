@@ -86,7 +86,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"nn_models\T_section_plus1\cost",
+    'save_path': r"nn_models\T_section1_plus\cost",
     'visualization': {
         'max_samples': 100000,
         'histogram_bins': 100

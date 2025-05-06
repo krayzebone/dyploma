@@ -24,7 +24,7 @@ def sample_parquet(input_path, output_path, n_samples=100000, random_state=42):
 
 # Example usage
 sample_parquet(
-    input_path=r"dataset_files\Tsectionplus\Tsection1.parquet",
+    input_path=r"dataset_files\Tsectionplus\Tsection2.parquet",
     output_path="Tsection1_100k.parquet",
     n_samples=100000
 )
