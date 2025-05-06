@@ -36,6 +36,11 @@ def find_valid_ro(b, h, fi_gl, n_min=2, n_max=200):
             valid_ro.append(ro)
     return np.array(valid_ro)
 
+def T_section_1r(MEqp, beff, bw, h, hf, fi, fck):
+    
+
+
+
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
     #   1. Parametry wejściowe
