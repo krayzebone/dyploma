@@ -49,37 +49,7 @@ def calc_cost(
     conc_cost = conc_area * concrete_cost_by_class[int(fck)]
     return steel_cost + conc_cost
 
-
-def calc_PT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fck, fyk):
-
-    a1 = cnom + fi / 2 + fi_str
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
-
-    fcd = fck / 1.4
-    fyd = fyk / 1.15
-    
-    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
-    if xeff is None:
-        return None
-
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = xeff * beff * fcd / fyd
-        As2 = 0
-    else:
-        xeff = ksiefflim * d
-        As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * beff * fcd) / fyd
-
-    cost = calc_cost(beff, bw, h, hf, fck, As1, As2)
-
-    return As1, As2, cost, a1, d 
-
-
-num_iterations = 10000
+num_iterations = 10000000
 data_list = []
 
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
@@ -89,7 +59,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
 
     # External moment
-    MEd = np.random.uniform(low=10, high=2000) * 1e6
+    MEd = np.random.uniform(low=10, high=10000) * 1e6
 
     # Geometry of section
     beff = np.random.uniform(low=100, high=2000)
@@ -100,7 +70,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     if hf > h:
         continue
-    
+
     if bw > beff:
         continue
     
@@ -120,7 +90,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     fcd = fck / 1.4
     fyd = fyk / 1.15
     
-    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
+    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd, h)
 
     if xeff is None:
         continue
@@ -129,11 +99,14 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
 
     if ksieff <= ksiefflim:
+        continue
+
+    if ksieff <= ksiefflim:
         As1 = xeff * beff * fcd / fyd
         As2 = 0
     else:
         xeff = ksiefflim * d
-        As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
+        As2 = (MEd - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
         As1 = (As2 * fyd + xeff * beff * fcd) / fyd
 
     cost = calc_cost(beff, bw, h, hf, fck, As1, As2)
@@ -152,6 +125,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'a1': a1,
         'd': d,
         'cost': cost,
+        'As1': As1,
+        'As2': As2
     }
 
     data_list.append(data_entry)
@@ -159,7 +134,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_csv("dataset.csv", index=False)
-    print(f"\nSaved {len(data_list)} valid results to 'datasetaa.parquet'")
+    df.to_parquet("Tsection2.parquet", index=False)
+    print(f"\nSaved {len(data_list)} valid results to 'Tsection.parquet'")
 else:
     print("\nNo valid cases found.")
