@@ -17,10 +17,9 @@ tf.random.set_seed(38)
 df = pd.read_parquet(r"dataset_files\Tsectionplus\Tsectionplus.parquet")
 
 features = ["MEd", "beff", "bw", "h", "hf", "fi", "fck", "cnom", "fi_str"]
-target = "rods_layer1"
-
-X = df[features].values   # shape: (n_samples, 7)
-y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
+target = ["rods_layer1", "rods_layer2", "rods_compression"]
+X = df[features].values   # shape: (n_samples, n_features)
+y = df[target].values     # shape: (n_samples, 3)
 
 # Add a small epsilon to avoid log(0) issues
 epsilon = 1e-8
@@ -46,11 +45,11 @@ X_train, X_val, y_train, y_val = train_test_split(
 # ============================================
 def create_model(trial):
     """
-    Build a neural network model for single output prediction.
+    Build a neural network model for multi-output prediction.
     Includes Batch Normalization after each Dense layer.
     """
     model = keras.Sequential()
-    model.add(layers.Input(shape=(X_train.shape[1],)))
+    model.add(layers.Input(shape=(X_train.shape[1],)))  # Use shape[1] for number of features
     
     # Number of hidden layers
     n_layers = trial.suggest_int("n_layers", 1, 6)
@@ -65,8 +64,8 @@ def create_model(trial):
         if dropout_rate > 0:
             model.add(layers.Dropout(rate=dropout_rate))
     
-    # Final layer with 1 output
-    model.add(layers.Dense(1, activation='linear'))
+    # Final layer with 3 outputs (one for each target)
+    model.add(layers.Dense(3, activation='linear'))
     
     # Learning rate
     lr = trial.suggest_float("lr", 1e-6, 1e-1, log=True)

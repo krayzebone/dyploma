@@ -33,7 +33,7 @@ def log_inverse(x):
 DATA_CONFIG = {
     'filepath': r"dataset_files\Tsectionplus\Tsectionplus.parquet",
     'features': ["MEd", "beff", "bw", "h", "hf", "fi", "fck", "cnom", "fi_str"],
-    'target': "rods_layer1",
+    'target': ["rods_layer1","rods_layer2", "rods_compression"],
     'test_size': 0.2,
     'random_state': 42
 }
@@ -66,16 +66,18 @@ SCALER_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 397, 'activation': 'relu', 'dropout': 0.14053617874853672}
+        {'units': 388, 'activation': 'relu', 'dropout': 0.29757069875728226},
+        {'units': 38, 'activation': 'relu', 'dropout': 0.08194610203489258},
+        {'units': 231, 'activation': 'relu', 'dropout': 0.4550382754646932},
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate=1.5805718329232507e-05),
+    'optimizer': Adam(learning_rate=7.260057253109083e-05),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
-    'batch_size': 50,
+    'batch_size': 137,
     'epochs': 100,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
@@ -84,7 +86,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"nn_models\T_section1_plus\n1",
+    'save_path': r"nn_models\T_section1_plus",
     'visualization': {
         'max_samples': 100000,
         'histogram_bins': 100
@@ -107,11 +109,13 @@ def load_and_preprocess_data():
             df[feature].values + transform_config['epsilon']
         )
     
-    y = df[DATA_CONFIG['target']].values.reshape(-1, 1)
+    y = df[DATA_CONFIG['target']].values
     
     # Apply target transformation
-    y_transformed = TRANSFORMATION_CONFIG['target']['transform'](
-        y + TRANSFORMATION_CONFIG['target']['epsilon']
+    y_transformed = np.zeros_like(y)
+    for i in range(y.shape[1]):  # Apply transform to each target column
+        y_transformed[:, i] = TRANSFORMATION_CONFIG['target']['transform'](
+        y[:, i] + TRANSFORMATION_CONFIG['target']['epsilon']
     )
 
     # Scale features and transformed target
@@ -142,7 +146,9 @@ def inverse_transform_features(X_scaled):
 def inverse_transform_target(y_scaled):
     """Inverse transform target from scaled to original space."""
     y_transformed = SCALER_CONFIG['y_scaler'].inverse_transform(y_scaled)
-    y_original = TRANSFORMATION_CONFIG['target']['inverse_transform'](y_transformed)
+    y_original = np.zeros_like(y_transformed)
+    for i in range(y_transformed.shape[1]):  # Apply inverse to each column
+        y_original[:, i] = TRANSFORMATION_CONFIG['target']['inverse_transform'](y_transformed[:, i])
     return y_original
 
 # ============================================
@@ -160,7 +166,7 @@ def build_model(input_shape):
             model.add(Dropout(layer['dropout']))
     
     # Output layer
-    model.add(Dense(1, activation=MODEL_CONFIG['output_activation']))
+    model.add(Dense(3, activation=MODEL_CONFIG['output_activation']))
     
     # Compile with training config
     model.compile(
@@ -249,15 +255,28 @@ def plot_scatter(actual_all, predicted_all):
     actual = actual_all[indices]
     predicted = predicted_all[indices]
 
-    plt.figure(figsize=(8, 8))
-    plt.scatter(actual, predicted, s=1, alpha=0.5)
-    # 1:1 line
-    _min, _max = min(actual), max(actual)
-    plt.plot([_min, _max], [_min, _max], 'r--')
-    plt.title("Predicted vs. Actual Values")
-    plt.xlabel("Actual")
-    plt.ylabel("Predicted")
-    plt.grid(True)
+    # Create a figure with subplots for each output
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    
+    target_names = DATA_CONFIG['target']
+    
+    for i, (ax, target_name) in enumerate(zip(axes, target_names)):
+        # Get the current target's actual and predicted values
+        act = actual[:, i]
+        pred = predicted[:, i]
+        
+        # Calculate min/max for this specific target
+        _min = min(act.min(), pred.min())
+        _max = max(act.max(), pred.max())
+        
+        ax.scatter(act, pred, s=1, alpha=0.5)
+        ax.plot([_min, _max], [_min, _max], 'r--')
+        ax.set_title(f"Predicted vs. Actual: {target_name}")
+        ax.set_xlabel("Actual")
+        ax.set_ylabel("Predicted")
+        ax.grid(True)
+    
+    plt.tight_layout()
     plt.show()
 
 # ============================================
