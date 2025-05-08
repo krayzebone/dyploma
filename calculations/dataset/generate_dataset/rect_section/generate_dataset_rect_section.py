@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 100000
+num_iterations = 15000000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -37,8 +37,6 @@ def find_valid_ro(b, h, fi_gl, n_min=2, n_max=200):
     return np.array(valid_ro)
 
 
-
-
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
     #   1. Parametry wejściowe
@@ -48,15 +46,15 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     h = np.random.uniform(low=100, high=1500)
     
     # Concrete choice
-    f_ck = np.random.choice([25, 30, 35, 40, 45])
+    f_ck = np.random.choice([16, 20, 25, 30, 35, 40, 45, 50])
     f_yk = 500
     
     # Choose bar diameter from discrete set
-    fi_gl = np.random.choice([8, 10, 12, 16, 20, 25, 28, 32])
-    c_nom = 40
+    fi_gl = np.random.choice([8, 10, 12, 14, 16, 20, 25, 28, 32])
+    c_nom = np.random.uniform(low=30, high=60)
     
     # External moment
-    M_Ed = np.random.uniform(low=10, high=2000) * 1e6
+    M_Ed = np.random.uniform(low=10, high=4000) * 1e6
 
     # Material constants
     E_s = 200_000       # MPa (steel)
@@ -269,7 +267,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_csv("dataset.csv", index=False)
+    df.to_parquet("datasetSGU.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

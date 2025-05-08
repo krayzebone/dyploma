@@ -46,7 +46,7 @@ def centroid_shift(rods: List[int], fi: float) -> float:
     return (n2 * Aφ * dy) / ((n1 + n2) * Aφ)
 
 # ───── Monte‑Carlo loop ──────────────────────────────────────────────────────
-N = 2000_000
+N = 2000_00
 rows = []
 
 for _ in tqdm.tqdm(range(N), desc="simulations"):
@@ -134,7 +134,7 @@ if rows:
     df = pd.DataFrame(rows, columns=[
         "MEd","beff","bw","h","hf","fi","fck","fi_str","cnom",
         "rods_layer1","rods_layer2","rods_compression"])
-    df.to_parquet("Tsection222.parquet", index=False)
+    df.to_csv("Tsection222.csv", index=False)
     print(f"\nSaved {len(df)} rows to 'Tsection222.parquet'")
 else:
     print("\nNo valid cases found.")

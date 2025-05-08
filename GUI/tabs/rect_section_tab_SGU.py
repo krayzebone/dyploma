@@ -12,7 +12,6 @@ import tensorflow as tf
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
-    QCheckBox,
     QDialog,
     QGridLayout,
     QGroupBox,
@@ -28,8 +27,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFontMetrics
 from GUI.tabs.rect_section_tab_SGN import CalculationData
 
-def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+from .optimization_module import predict_section_batch
+from .optimization_module import calc_max_rods
+from .optimization_module import generate_all_combinations
+from .optimization_module import process_combinations_batch
+from .optimization_module import find_optimal_solution
 
+def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
             'model': r"nn_models\rect_section\Mcr_model\model.keras",
@@ -61,11 +65,10 @@ def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom:
     }
     
     # Calculate derived parameters
-    d = h - cnom - fi / 2  # Effective depth
-    ro1 = As1 / (b * d) if (b * d) > 0 else 0  # Reinforcement ratio (using d)
-    ro2 = As2 / (b * d) if (b * d) > 0 else 0   # Reinforcement ratio (using d)
+    d = h - cnom - fi / 2
+    ro1 = As1 / (b * d) if (b * d) > 0 else 0
+    ro2 = As2 / (b * d) if (b * d) > 0 else 0
     
-    # Create a dictionary of all possible features
     feature_values = {
         'MEd': float(MEd),
         'b': float(b),
@@ -80,24 +83,20 @@ def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom:
     results = {}
     for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
         try:
-            # Load model and scalers
-            model = tf.keras.models.load_model(MODEL_PATHS[model_name]['model'], compile=False)
-            X_scaler = joblib.load(MODEL_PATHS[model_name]['scaler_X'])
-            y_scaler = joblib.load(MODEL_PATHS[model_name]['scaler_y'])
-            
-            # Prepare input - select only the needed features and create a DataFrame row
-            X_values = [feature_values[feature] for feature in MODEL_FEATURES[model_name]]
+            model_info = MODEL_PATHS[model_name]
+            model = tf.keras.models.load_model(model_info['model'], compile=False)
+            X_scaler = joblib.load(model_info['scaler_X'])
+            y_scaler = joblib.load(model_info['scaler_y'])
+
+            X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
             X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
-            
-            # Apply log transform and scale
+
             X_scaled = X_scaler.transform(np.log(X + 1e-8))
-            
-            # Predict and inverse transform
             pred_scaled = model.predict(X_scaled)
             pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
             results[model_name] = pred
         except Exception as e:
-            print(f"⚠️ Error in {model_name}: {str(e)}")
+            print(f"⚠️ Error in {model_name}: {e}")
             results[model_name] = None
     
     return results
@@ -107,30 +106,40 @@ class RectSectionTabSGU(QWidget):
     
     def __init__(self, parent: QWidget | None = None, data_store: CalculationData = None) -> None:
         super().__init__(parent)
-        self.data_store = data_store if data_store else CalculationData()
+        self.data_store = data_store or CalculationData()
         self._build_ui()
         self._update_display()
         
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
-        
-        # Title label
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+
+        content_widget = QWidget()
+        scroll_area.setWidget(content_widget)
+
+        layout = QVBoxLayout(content_widget)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.addWidget(scroll_area)
+
         title = QLabel("Stored Calculation Results")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_font = title.font()
-        title_font.setBold(True)
-        title_font.setPointSize(14)
-        title.setFont(title_font)
+        font = title.font()
+        font.setBold(True)
+        font.setPointSize(14)
+        title.setFont(font)
         layout.addWidget(title)
-        
-        # Add some spacing
         layout.addSpacing(20)
-        
-        # Create the results display group
+
+        # Add refresh button at the top of the content (before the calculation group)
+        self.refresh_btn = QPushButton("Refresh Data")
+        self.refresh_btn.clicked.connect(self._update_display)
+        layout.addWidget(self.refresh_btn)
+        layout.addSpacing(10)  # Add some spacing between button and group
+
+        # Calculation group
         group = QGroupBox("Calculation Parameters and Results")
         group_layout = QVBoxLayout(group)
-        
-        # Create the display fields
+
         self.result_fields = {}
         fields = [
             ("Moment [kNm]", "MEd"),
@@ -143,148 +152,149 @@ class RectSectionTabSGU(QWidget):
             ("Number of tension rods", "num_rods_As1"),
             ("Number of compression rods", "num_rods_As2"),
         ]
-        
-        for label_text, data_key in fields:
+        for label_text, key in fields:
             hbox = QHBoxLayout()
-            label = QLabel(label_text)
-            label.setFixedWidth(250)
-            output = QLineEdit()
-            output.setReadOnly(True)
-            output.setAlignment(Qt.AlignmentFlag.AlignRight)
-            hbox.addWidget(label)
-            hbox.addWidget(output)
+            lbl = QLabel(label_text)
+            lbl.setFixedWidth(250)
+            out = QLineEdit()
+            out.setReadOnly(True)
+            out.setAlignment(Qt.AlignmentFlag.AlignRight)
+            out.setFixedHeight(28)
+            hbox.addWidget(lbl)
+            hbox.addWidget(out)
             group_layout.addLayout(hbox)
-            self.result_fields[data_key] = output
-        
-        # Add input fields for n1 and n2
-        hbox_n1 = QHBoxLayout()
-        label_n1 = QLabel("Input number of tension rods (n1):")
-        label_n1.setFixedWidth(250)
-        self.input_n1 = QLineEdit()
-        self.input_n1.setAlignment(Qt.AlignmentFlag.AlignRight)
-        hbox_n1.addWidget(label_n1)
-        hbox_n1.addWidget(self.input_n1)
-        group_layout.addLayout(hbox_n1)
-        
-        hbox_n2 = QHBoxLayout()
-        label_n2 = QLabel("Input number of compression rods (n2):")
-        label_n2.setFixedWidth(250)
-        self.input_n2 = QLineEdit()
-        self.input_n2.setAlignment(Qt.AlignmentFlag.AlignRight)
-        hbox_n2.addWidget(label_n2)
-        hbox_n2.addWidget(self.input_n2)
-        group_layout.addLayout(hbox_n2)
-        
-        # Add predict button
+            self.result_fields[key] = out
+
         self.predict_btn = QPushButton("Predict")
         self.predict_btn.clicked.connect(self._on_predict)
         group_layout.addWidget(self.predict_btn)
-        
-        # Add predicted results fields
-        predicted_fields = [
+
+        preds = [
             ("Predicted Mcr [kNm]", "pred_Mcr"),
             ("Predicted MRd [kNm]", "pred_MRd"),
             ("Predicted Wk [mm]", "pred_Wk"),
-            ("Predicted Cost", "pred_Cost")
+            ("Predicted Cost", "pred_Cost"),
         ]
-        
-        for label_text, data_key in predicted_fields:
+        for txt, key in preds:
             hbox = QHBoxLayout()
-            label = QLabel(label_text)
-            label.setFixedWidth(250)
-            output = QLineEdit()
-            output.setReadOnly(True)
-            output.setAlignment(Qt.AlignmentFlag.AlignRight)
-            hbox.addWidget(label)
-            hbox.addWidget(output)
+            lbl = QLabel(txt)
+            lbl.setFixedWidth(250)
+            out = QLineEdit()
+            out.setReadOnly(True)
+            out.setAlignment(Qt.AlignmentFlag.AlignRight)
+            out.setFixedHeight(28)
+            hbox.addWidget(lbl)
+            hbox.addWidget(out)
             group_layout.addLayout(hbox)
-            self.result_fields[data_key] = output
-        
-        # Add stretch to push everything up
-        group_layout.addStretch()
-        
-        # Add the group to the main layout
-        layout.addWidget(group)
-        
-        # Add refresh button
-        self.refresh_btn = QPushButton("Refresh Data")
-        self.refresh_btn.clicked.connect(self._update_display)
-        layout.addWidget(self.refresh_btn)
-        
-        # Add stretch to push everything up
-        layout.addStretch()
-    
-    def _update_display(self) -> None:
-        """Update all fields with current data from CalculationData."""
-        # Display basic parameters
-        self.result_fields["MEd"].setText(
-            f"{self.data_store.MEd:.2f}" if self.data_store.MEd is not None else "N/A"
-        )
-        self.result_fields["b"].setText(
-            f"{self.data_store.b:.1f}" if self.data_store.b is not None else "N/A"
-        )
-        self.result_fields["h"].setText(
-            f"{self.data_store.h:.1f}" if self.data_store.h is not None else "N/A"
-        )
-        self.result_fields["fi"].setText(
-            f"{self.data_store.fi:.1f}" if self.data_store.fi is not None else "N/A"
-        )
-        
-        # Display concrete class if available
-        fck_text = "N/A"
-        if self.data_store.fck is not None:
-            fck_text = f"C{self.data_store.fck}/{self.data_store.fck + 5}"
-        self.result_fields["fck"].setText(fck_text)
-        
-        # Display reinforcement areas
-        self.result_fields["As1"].setText(
-            f"{self.data_store.As1:.1f}" if self.data_store.As1 is not None else "N/A"
-        )
-        self.result_fields["As2"].setText(
-            f"{self.data_store.As2:.1f}" if self.data_store.As2 is not None else "N/A"
-        )
+            self.result_fields[key] = out
 
-        # Display number of rods
-        self.result_fields["num_rods_As1"].setText(
-            str(self.data_store.num_rods_As1) if self.data_store.num_rods_As1 is not None else "N/A"
-        )
-        self.result_fields["num_rods_As2"].setText(
-            str(self.data_store.num_rods_As2) if self.data_store.num_rods_As2 is not None else "N/A"
-        )
-    
+        group_layout.addStretch()
+        layout.addWidget(group)
+
+        # Optimization section below calculation group
+        self._build_optimization_group(layout)
+        layout.addStretch()
+
+        # Remove the refresh button from the bottom (it was originally at line 178)
+    def _build_optimization_group(self, layout: QVBoxLayout) -> None:
+        opt_group = QGroupBox("Optimized Section Parameters")
+        opt_layout = QVBoxLayout(opt_group)
+
+        self.optimize_btn = QPushButton("Optimize Section")
+        self.optimize_btn.clicked.connect(self._on_optimize)
+        opt_layout.addWidget(self.optimize_btn)
+
+        opt_fields = [
+            ("Optimized Ø [mm]", "opt_fi"),
+            ("Optimized Concrete Class", "opt_fck"),
+            ("Optimized n1", "opt_n1"),
+            ("Optimized n2", "opt_n2"),
+            ("Optimized MRd [kNm]", "opt_MRd"),
+            ("Optimized Mcr [kNm]", "opt_Mcr"),
+            ("Optimized Wk [mm]", "opt_Wk"),
+            ("Optimized Cost", "opt_Cost"),
+        ]
+        self.opt_result_fields = {}
+
+        for label_text, key in opt_fields:
+            hbox = QHBoxLayout()
+            lbl = QLabel(label_text)
+            lbl.setFixedWidth(250)
+            out = QLineEdit()
+            out.setReadOnly(True)
+            out.setAlignment(Qt.AlignmentFlag.AlignRight)
+            out.setFixedHeight(28)
+            hbox.addWidget(lbl)
+            hbox.addWidget(out)
+            opt_layout.addLayout(hbox)
+            self.opt_result_fields[key] = out
+
+        layout.addWidget(opt_group)
+
+    def _update_display(self) -> None:
+        ds = self.data_store
+        self.result_fields["MEd"].setText(f"{ds.MEd:.2f}" if ds.MEd is not None else "N/A")
+        self.result_fields["b"].setText(f"{ds.b:.1f}" if ds.b is not None else "N/A")
+        self.result_fields["h"].setText(f"{ds.h:.1f}" if ds.h is not None else "N/A")
+        self.result_fields["fi"].setText(f"{ds.fi:.1f}" if ds.fi is not None else "N/A")
+        fck_txt = f"C{ds.fck}/{ds.fck+5}" if ds.fck is not None else "N/A"
+        self.result_fields["fck"].setText(fck_txt)
+        self.result_fields["As1"].setText(f"{ds.As1:.1f}" if ds.As1 is not None else "N/A")
+        self.result_fields["As2"].setText(f"{ds.As2:.1f}" if ds.As2 is not None else "N/A")
+        self.result_fields["num_rods_As1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
+        self.result_fields["num_rods_As2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
+
     def _on_predict(self) -> None:
-        """Handle the predict button click."""
         try:
-            # Get input values
-            n1 = int(self.input_n1.text())
-            n2 = int(self.input_n2.text())
-            
-            # Get other required parameters
-            MEd = float(self.result_fields["MEd"].text()) if self.result_fields["MEd"].text() != "N/A" else None
-            b = float(self.result_fields["b"].text()) if self.result_fields["b"].text() != "N/A" else None
-            h = float(self.result_fields["h"].text()) if self.result_fields["h"].text() != "N/A" else None
-            fi = float(self.result_fields["fi"].text()) if self.result_fields["fi"].text() != "N/A" else None
-            fck_text = self.result_fields["fck"].text()
-            fck = float(fck_text.split('/')[0][1:]) if fck_text != "N/A" else None
-            cnom = 30  # Assuming a default concrete cover if not available
-            
-            # Calculate rebar areas
+            n1_txt = self.result_fields["num_rods_As1"].text()
+            n2_txt = self.result_fields["num_rods_As2"].text()
+            n1 = int(n1_txt) if n1_txt not in ("N/A", "") else 0
+            n2 = int(n2_txt) if n2_txt not in ("N/A", "") else 0
+
+            MEd = float(self.result_fields["MEd"].text())
+            b = float(self.result_fields["b"].text())
+            h = float(self.result_fields["h"].text())
+            fi = float(self.result_fields["fi"].text())
+            fck_txt = self.result_fields["fck"].text()
+            fck = float(fck_txt.split('/')[0][1:])
+            cnom = 30
+
             As1 = n1 * math.pi * (fi ** 2) / 4
             As2 = n2 * math.pi * (fi ** 2) / 4
-            
-            # Make prediction
+
             results = predict_section(MEd, b, h, fck, fi, cnom, As1, As2)
-            
-            # Display results
             self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
             self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
             self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
             self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
-            
-        except ValueError as e:
-            print(f"Error in input values: {str(e)}")
-            # Clear prediction fields if there's an error
-            self.result_fields["pred_Mcr"].setText("Invalid input")
-            self.result_fields["pred_MRd"].setText("Invalid input")
-            self.result_fields["pred_Wk"].setText("Invalid input")
-            self.result_fields["pred_Cost"].setText("Invalid input")
+        except Exception as e:
+            print(f"Error in prediction: {e}")
+            for key in ["pred_Mcr", "pred_MRd", "pred_Wk", "pred_Cost"]:
+                self.result_fields[key].setText("Invalid input")
+
+    def _on_optimize(self) -> None:
+        try:
+            MEd = float(self.result_fields["MEd"].text())
+            b = float(self.result_fields["b"].text())
+            h = float(self.result_fields["h"].text())
+            cnom = 30
+            wk_max = 0.3
+
+            optimal = find_optimal_solution(MEd, b, h, cnom, wk_max)
+            if not optimal:
+                for field in self.opt_result_fields.values():
+                    field.setText("No valid solution")
+                return
+
+            self.opt_result_fields["opt_fi"].setText(f"{optimal['fi']:.0f}")
+            self.opt_result_fields["opt_fck"].setText(f"C{optimal['fck']}/{int(optimal['fck'])+5}")
+            self.opt_result_fields["opt_n1"].setText(str(int(optimal['n1'])))
+            self.opt_result_fields["opt_n2"].setText(str(int(optimal['n2'])))
+            self.opt_result_fields["opt_MRd"].setText(f"{optimal['MRd']:.2f}")
+            self.opt_result_fields["opt_Mcr"].setText(f"{optimal['Mcr']:.2f}")
+            self.opt_result_fields["opt_Wk"].setText(f"{optimal['Wk']:.4f}")
+            self.opt_result_fields["opt_Cost"].setText(f"{optimal['Cost']:.2f}")
+        except Exception as e:
+            print(f"Optimization failed: {e}")
+            for field in self.opt_result_fields.values():
+                field.setText("Error")
