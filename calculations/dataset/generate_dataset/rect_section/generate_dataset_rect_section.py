@@ -54,7 +54,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     c_nom = np.random.uniform(low=30, high=60)
     
     # External moment
-    M_Ed = np.random.uniform(low=10, high=4000) * 1e6
+    M_Ed = np.random.uniform(low=10, high=1000) * 1e6
 
     # Material constants
     E_s = 200_000       # MPa (steel)

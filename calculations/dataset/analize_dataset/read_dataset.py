@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Specify the path to your .parquet file
 #parquet_file_path_preprocessed_data = r"C:\Users\marci\Desktop\Lagrange\dataset_files\preprocessed_files\preprocessed_results.parquet"
-parquet_file_path = r"dataset_files\T_section_plus\T_section_PT1\PT1r_dataset.parquet"
+parquet_file_path = r"dataset_files\rect_section\dataset_rect_section.parquet"
 
 # Read the .parquet file into a DataFrame
 #df1 = pd.read_parquet(parquet_file_path_preprocessed_data)

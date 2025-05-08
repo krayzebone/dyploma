@@ -147,8 +147,8 @@ class RectSectionTabSGU(QWidget):
             ("Height [mm]", "h"),
             ("Reinforcement diameter [mm]", "fi"),
             ("Concrete class", "fck"),
-            ("Required As1 [mm²]", "As1"),
-            ("Required As2 [mm²]", "As2"),
+            ("Provided As1 [mm²]", "act1"),
+            ("Provided As2 [mm²]", "act2"),
             ("Number of tension rods", "num_rods_As1"),
             ("Number of compression rods", "num_rods_As2"),
         ]
@@ -171,7 +171,7 @@ class RectSectionTabSGU(QWidget):
 
         preds = [
             ("Predicted Mcr [kNm]", "pred_Mcr"),
-            ("Predicted MRd [kNm]", "pred_MRd"),
+            #("Predicted MRd [kNm]", "pred_MRd"),
             ("Predicted Wk [mm]", "pred_Wk"),
             ("Predicted Cost", "pred_Cost"),
         ]
@@ -195,10 +195,20 @@ class RectSectionTabSGU(QWidget):
         self._build_optimization_group(layout)
         layout.addStretch()
 
-        # Remove the refresh button from the bottom (it was originally at line 178)
     def _build_optimization_group(self, layout: QVBoxLayout) -> None:
         opt_group = QGroupBox("Optimized Section Parameters")
         opt_layout = QVBoxLayout(opt_group)
+
+        # Add MEqp input box at the top of optimization group
+        hbox = QHBoxLayout()
+        lbl = QLabel("MEqp for prediction [kNm]")
+        lbl.setFixedWidth(250)
+        self.MEqp_input = QLineEdit()
+        self.MEqp_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.MEqp_input.setFixedHeight(28)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.MEqp_input)
+        opt_layout.addLayout(hbox)
 
         self.optimize_btn = QPushButton("Optimize Section")
         self.optimize_btn.clicked.connect(self._on_optimize)
@@ -239,8 +249,8 @@ class RectSectionTabSGU(QWidget):
         self.result_fields["fi"].setText(f"{ds.fi:.1f}" if ds.fi is not None else "N/A")
         fck_txt = f"C{ds.fck}/{ds.fck+5}" if ds.fck is not None else "N/A"
         self.result_fields["fck"].setText(fck_txt)
-        self.result_fields["As1"].setText(f"{ds.As1:.1f}" if ds.As1 is not None else "N/A")
-        self.result_fields["As2"].setText(f"{ds.As2:.1f}" if ds.As2 is not None else "N/A")
+        self.result_fields["act1"].setText(f"{ds.act1:.1f}" if ds.act1 is not None else "N/A")
+        self.result_fields["act2"].setText(f"{ds.act2:.1f}" if ds.act2 is not None else "N/A")
         self.result_fields["num_rods_As1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
         self.result_fields["num_rods_As2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
 
@@ -251,7 +261,10 @@ class RectSectionTabSGU(QWidget):
             n1 = int(n1_txt) if n1_txt not in ("N/A", "") else 0
             n2 = int(n2_txt) if n2_txt not in ("N/A", "") else 0
 
-            MEd = float(self.result_fields["MEd"].text())
+            # Use MEqp input if provided, otherwise use MEd
+            MEqp_text = self.MEqp_input.text()
+            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
+            
             b = float(self.result_fields["b"].text())
             h = float(self.result_fields["h"].text())
             fi = float(self.result_fields["fi"].text())
@@ -264,7 +277,7 @@ class RectSectionTabSGU(QWidget):
 
             results = predict_section(MEd, b, h, fck, fi, cnom, As1, As2)
             self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
-            self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
+            #self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
             self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
             self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
         except Exception as e:
