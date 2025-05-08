@@ -18,9 +18,9 @@ class MainWindow(QTabWidget):
 
         self.addTab(self.main_tab, "1. Wstęp")
         self.addTab(self.beam_tab, "2. Belka")
-        self.addTab(self.T_section_tab, "3. Tsection")
-        self.addTab(self.rect_section_tab_SGN, "4. RectSGN")
-        self.addTab(self.rect_section_tab_SGU, "5. RectSGU")
+        self.addTab(self.rect_section_tab_SGN, "3. RectSGN")
+        self.addTab(self.rect_section_tab_SGU, "4. RectSGU")
+        self.addTab(self.T_section_tab, "5. Tsection")
 
         # Connect
         self.main_tab.next_button.clicked.connect(self.go_to_beam_tab)
