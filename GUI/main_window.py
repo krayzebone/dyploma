@@ -4,6 +4,7 @@ from GUI.tabs.beam_tab import BeamTab
 from GUI.tabs.T_section_tab_SGN import TSectionTabSGN
 from GUI.tabs.T_section_tab_SGN import CalculationDataT
 from GUI.tabs.T_section_tab_SGU import TSectionTabSGU
+
 from GUI.tabs.rect_section_tab_SGN import RectSectionTabSGN
 from GUI.tabs.rect_section_tab_SGN import CalculationData
 from GUI.tabs.rect_section_tab_SGU import RectSectionTabSGU
