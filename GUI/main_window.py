@@ -1,7 +1,9 @@
 from PyQt6.QtWidgets import QTabWidget
 from GUI.tabs.main_tab import MainTab
 from GUI.tabs.beam_tab import BeamTab
-from GUI.tabs.T_section_tab import TSectionTab
+from GUI.tabs.T_section_tab_SGN import TSectionTabSGN
+from GUI.tabs.T_section_tab_SGN import CalculationDataT
+from GUI.tabs.T_section_tab_SGU import TSectionTabSGU
 from GUI.tabs.rect_section_tab_SGN import RectSectionTabSGN
 from GUI.tabs.rect_section_tab_SGN import CalculationData
 from GUI.tabs.rect_section_tab_SGU import RectSectionTabSGU
@@ -10,17 +12,20 @@ class MainWindow(QTabWidget):
     def __init__(self):
         super().__init__()
         self.data_store = CalculationData()
+        self.data_storeT = CalculationDataT()
         self.main_tab = MainTab()
         self.beam_tab = BeamTab()
-        self.T_section_tab = TSectionTab()
         self.rect_section_tab_SGN = RectSectionTabSGN(data_store=self.data_store)
         self.rect_section_tab_SGU = RectSectionTabSGU(data_store=self.data_store)
+        self.T_section_tab_SGN = TSectionTabSGN(data_storeT=self.data_storeT)
+        self.T_section_tab_SGU = TSectionTabSGU(data_storeT=self.data_storeT)
 
         self.addTab(self.main_tab, "1. Wstęp")
         self.addTab(self.beam_tab, "2. Belka")
         self.addTab(self.rect_section_tab_SGN, "3. RectSGN")
         self.addTab(self.rect_section_tab_SGU, "4. RectSGU")
-        self.addTab(self.T_section_tab, "5. Tsection")
+        self.addTab(self.T_section_tab_SGN, "5. TsectionSGN")
+        self.addTab(self.T_section_tab_SGU, "6. TsectionSGU")
 
         # Connect
         self.main_tab.next_button.clicked.connect(self.go_to_beam_tab)

@@ -44,6 +44,8 @@ def find_valid_ro(beff, bw, h, hf, fi, n_min=2, n_max=200):
             valid_ro.append(ro)
     return np.array(valid_ro)
 
+Es  = 200_000   # steel modulus
+Ecm = 31_000    # concrete secant modulus
 
 def calc_capacity(beff: float, 
                  bw: float, 
@@ -55,79 +57,85 @@ def calc_capacity(beff: float,
                  fistr: float,
                  cnom: float,
                  n1: float,
-                 n2: float
-                 ):
+                 n2: float,) -> float:
     
-    a1 = cnom + fi / 2 + fistr
-    a2 = cnom + fi / 2 + fistr
-
-    fcd = fck / 1.4
-    fyd = fyk / 1.15
-
-    ksiefflim = 0.8 * (0.0035/(0.0035 + fyd / Es))
-
-    d = h - a1
-
-    As1 = n1 * math.pi * fi**2 / 4
-    As2 = n2 * math.pi * fi**2 / 4
-
-    if n1 > 0 and n2 == 0:
-        # Sprawdzenie teowości
-        Fc = hf * beff * fcd
-        Fs = As1 * fyd
-
-        if Fc >= Fs:
-            xeff = As1 * fyd / (beff * fcd)
-            ksieff = xeff / d
-            if ksieff > ksiefflim:
-                xeff = ksiefflim * d
-            MRd = xeff * beff * fcd * (d - 0.5 * xeff)
-            return MRd
-        else:
-            xeff = (As1 * fyd - hf * (beff - bw) * fcd) / (bw * fcd))
-            ksieff = xeff / d
-            if ksieff > ksiefflim:
-                xeff = ksiefflim * d
-            MRd = hf * (beff - bw) * fcd * (d - 0.5 * hf) + xeff * bw * fcd * (d - 0.5 * xeff)
-            return MRd
+    # Input validation
+    if any(v <= 0 for v in [beff, bw, h, hf, fck, fyk, fi]) or any(v < 0 for v in [n1, n2]):
+        return float('nan')
     
-    elif n1 > 0 and n2 > 0:
-        Fc = hf * beff * fcd
-        Fs1 = As1 * fyd
-        Fs2 = As2 * fyd
-        F = Fc + Fs2
+    Es  = 200_000   # steel modulus
+    Ecm = 31_000    # concrete secant modulus
 
-        if F >= Fs1:
-            xeff = (As1 * fyd - As2 * fyd) / (beff * fcd)
-            ksieff = xeff / d
-            if ksieff > ksiefflim:
-                xeff = ksiefflim * d
-            
-            if xeff >= 2 * a2 and xeff <= hf:
-                MRd = xeff * beff * fcd * (d - 0.5 * xeff) + As2 * fyd * (d - a2)
-                return MRd
-            elif xeff < 2 * a2:
-                MRd = As1 * fyd * (d - a2)
-                return MRd
-            else:
-                return None  # Invalid case
+    try:
+        a1 = cnom + fi / 2 + fistr
+        a2 = cnom + fi / 2 + fistr
+        d = h - a1
         
-        else:
-            xeff = (As1 * fyd - As2 * fyd - hf * (beff - bw) * fcd) / (bw * fcd)  # Changed denominator to bw
-            ksieff = xeff / d
-            if ksieff > ksiefflim:
-                xeff = ksiefflim * d
+        # Validate effective depth
+        if d <= 0:
+            return float('nan')
+
+        fcd = fck / 1.4
+        fyd = fyk / 1.15
+        ksiefflim = 0.8 * (0.0035/(0.0035 + fyd / Es))
+
+        As1 = n1 * math.pi * fi**2 / 4
+        As2 = n2 * math.pi * fi**2 / 4
+
+        # Case 1: Only tension reinforcement
+        if n1 > 0 and n2 == 0:
+            Fc = hf * beff * fcd
+            Fs = As1 * fyd
+
+            if Fc >= Fs:  # Rectangular behavior
+                xeff = As1 * fyd / (beff * fcd)
+                ksieff = xeff / d
+                if ksieff > ksiefflim:
+                    xeff = ksiefflim * d
+                return xeff * beff * fcd * (d - 0.5 * xeff)
+            else:  # T-shaped behavior
+                xeff = (As1 * fyd - hf * (beff - bw) * fcd) / (bw * fcd)
+                ksieff = xeff / d
+                if ksieff > ksiefflim:
+                    xeff = ksiefflim * d
+                return (hf * (beff - bw) * fcd * (d - 0.5 * hf) + 
+                       xeff * bw * fcd * (d - 0.5 * xeff))
+
+        # Case 2: Both tension and compression reinforcement
+        elif n1 > 0 and n2 > 0:
+            Fc = hf * beff * fcd
+            Fs1 = As1 * fyd
+            Fs2 = As2 * fyd
+            F = Fc + Fs2
+
+            if F >= Fs1:  # Neutral axis in flange
+                xeff = (As1 * fyd - As2 * fyd) / (beff * fcd)
+                ksieff = xeff / d
+                if ksieff > ksiefflim:
+                    xeff = ksiefflim * d
+                
+                if xeff >= 2 * a2 and xeff <= hf:
+                    return xeff * beff * fcd * (d - 0.5 * xeff) + As2 * fyd * (d - a2)
+                elif xeff < 2 * a2:
+                    return As1 * fyd * (d - a2)
             
-            if xeff >= 2 * a2 and xeff <= h:
-                MRd = As2 * fyd * (d - a2) + hf * (beff - bw) * fcd * (d - 0.5 * hf) + xeff * bw * fcd * (d - 0.5 * xeff)
-                return MRd
-            elif xeff < 2 * a2:
-                MRd = As1 * fyd * (d - a2)
-                return MRd
-            else:
-                return None  # Invalid case
+            else:  # Neutral axis in web
+                xeff = (As1 * fyd - As2 * fyd - hf * (beff - bw) * fcd) / (bw * fcd)
+                ksieff = xeff / d
+                if ksieff > ksiefflim:
+                    xeff = ksiefflim * d
+                
+                if xeff >= 2 * a2 and xeff <= h:
+                    return (As2 * fyd * (d - a2) + 
+                           hf * (beff - bw) * fcd * (d - 0.5 * hf) + 
+                           xeff * bw * fcd * (d - 0.5 * xeff))
+                elif xeff < 2 * a2:
+                    return As1 * fyd * (d - a2)
+
+    except Exception as e:
+        print(f"Error in calc_capacity: {e}")
     
-    return None  # Default return for invalid cases
+    return float('nan')  # Return NaN for all invalid cases
 
 
 def calc_creep(beff, bw, h, hf, fck):
@@ -244,7 +252,7 @@ def calc_crack(MEqp: float,
 
     return Mcr, Wk
 
-num_iterations = 15000
+num_iterations = 150000
 data_list = []
 
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
@@ -267,6 +275,18 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     Ecm = 31_000
 
     valid_ro = find_valid_ro(beff, bw, h, hf, fi)
+
+    if beff < bw:
+        continue
+
+    if h < hf:
+        continue
+
+    a1 = cnom + fi / 2 + fistr
+    d = h - a1
+
+    if d < 2* a1:
+        continue
     
     # Skip if not enough valid reinforcement ratios
     if len(valid_ro) < 2:
@@ -303,13 +323,18 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     cost = calc_cost(beff, bw, h, hf, fck, As1, As2)
 
     MRd = calc_capacity(beff, bw, h, hf, fck, fyk, fi, fistr, cnom, n1, n2)
+    M_Rd = MRd / 1e6
 
-    if MRd is None:
+    if math.isnan(M_Rd):
         continue  # Skip this iteration
+
+    if M_Rd is None:
+        continue
+
 
      # Store final data
     data_entry = {
-        'MRd': MRd / 1e6,
+        'MRd': M_Rd,
         'MEd': MEd / 1e6,
         'MEqp': MEqp / 1e6,
         'beff': beff,
@@ -333,7 +358,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 if data_list:
     df = pd.DataFrame(data_list)
     df = df.dropna()
-    df.to_csv("datasetSGU.csv", index=False)
+    df.to_parquet("datasetSGUMRd.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")
+

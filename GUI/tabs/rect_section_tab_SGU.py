@@ -27,11 +27,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFontMetrics
 from GUI.tabs.rect_section_tab_SGN import CalculationData
 
-from .optimization_module import predict_section_batch
-from .optimization_module import calc_max_rods
-from .optimization_module import generate_all_combinations
-from .optimization_module import process_combinations_batch
-from .optimization_module import find_optimal_solution
+from .optimization_module_rect import predict_section_batch
+from .optimization_module_rect import calc_max_rods
+from .optimization_module_rect import generate_all_combinations
+from .optimization_module_rect import process_combinations_batch
+from .optimization_module_rect import find_optimal_solution
 
 def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {

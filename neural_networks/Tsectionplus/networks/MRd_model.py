@@ -39,7 +39,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"dataset_files\Tsection\Tsectionplus.parquet",
+    'filepath': r"dataset_files\Tsection\datasetSGUMRd.parquet",
     'features': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
@@ -184,6 +184,7 @@ def build_model(input_shape):
 # ============================================
 def train_model(model, X_train, y_train_scaled, X_val, y_val_scaled):
     """Train with centralized configuration."""
+
     history = model.fit(
         X_train, y_train_scaled,
         validation_data=(X_val, y_val_scaled),
