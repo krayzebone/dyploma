@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 # 1. Configuration (Adjust paths accordingly)
 # --------------------------------------------------------------------------------
 
-DATA_FILEPATH = r"datasets\dataset_rect_section.parquet"
-MODEL_FOLDER  = r"nn_models\nn_models_rect_section\Mcr_model"
+DATA_FILEPATH = r"dataset_files\rect_section\dataset_rect_section.parquet"
+MODEL_FOLDER  = r"nn_models\rect_section\Mcr_model"
 
 # Name of the target column in the dataset
 TARGET_COLUMN = "Mcr"
