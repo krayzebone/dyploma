@@ -257,45 +257,7 @@ def calc_crack(MEqp: float,
 num_iterations = 150000
 data_list = []
 
-MEqp=300 * 1e6
-beff=900
-bw=800
-h=300
-hf=100
-fi=20
-fck=30
-As1=22*fi**2*math.pi/4
-As2=5*fi**2*math.pi/4
-fyk=500
-fistr=8
-cnom=30
 
-results=calc_crack(MEqp, 
-               beff, 
-               bw, 
-               h, 
-               hf, 
-               fck, 
-               fyk,
-               fi,
-               fistr,
-               cnom,
-               As1,
-               As2,)
-
-cost = calc_cost(
-    beff,
-    bw,
-    h,
-    hf,
-    fck,
-    As1,
-    As2,
-)
-
-print(results, cost)
-
-"""
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     MEd = np.random.uniform(low=100, high=10000) * 1e6
@@ -372,6 +334,12 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     if M_Rd is None:
         continue
 
+    if d < 2 * a1:
+        continue
+    if n1 < n2:
+            continue
+
+
 
      # Store final data
     data_entry = {
@@ -404,4 +372,3 @@ if data_list:
 else:
     print("\nNo valid cases found.")
 
-"""
