@@ -1,23 +1,10 @@
-# calculations.py
+import joblib
+import pandas as pd
+import numpy as np
+import tensorflow as tf
 import math
-from dataclasses import dataclass
-
-
-def quadratic_equation(a: float, b: float, c: float, limit: float) -> float | None:
-    """Solve ax²+bx+c = 0 and return the root that lies in (0, limit)."""
-    if a == 0:
-        return None
-
-    delta = b**2 - 4 * a * c
-    if delta < 0:
-        return None
-
-    sqrt_delta = math.sqrt(delta)
-    x1 = (-b - sqrt_delta) / (2 * a)
-    x2 = (-b + sqrt_delta) / (2 * a)
-    valid = [x for x in (x1, x2) if 0 < x < limit]
-    return min(valid) if valid else None
-
+from itertools import product
+from tqdm import tqdm
 
 def calc_cost(
     beff: float,
@@ -49,244 +36,116 @@ def calc_cost(
     conc_cost = conc_area * concrete_cost_by_class[int(fck)]
     return steel_cost + conc_cost
 
+def predict_section_batch(input_data: pd.DataFrame, model_name: str):
+    MODEL_PATHS = {
+        'Mcr': {
+            'model': r"nn_models\Tsectionplus\Mcr_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\Mcr_model\scaler_y.pkl"
+        },
+        'MRd': {
+            'model': r"nn_models\Tsectionplus\MRd_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\MRd_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\MRd_model\scaler_y.pkl"
+        },
+        'Wk': {
+            'model': r"nn_models\Tsectionplus\Wk_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\Wk_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\Wk_model\scaler_y.pkl"
+        }
+    }
 
-def calc_PT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
-    a1 = cnom + fi / 2 + fi_str
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
+    MODEL_FEATURES = {
+        'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
+        'MRd': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
+        'Wk': ["MEd", "beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"]
+    }
     
-    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
+    try:
+        model_info = MODEL_PATHS[model_name]
+        model = tf.keras.models.load_model(model_info['model'], compile=False)
+        X_scaler = joblib.load(model_info['scaler_X'])
+        y_scaler = joblib.load(model_info['scaler_y'])
 
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
+        X = input_data[MODEL_FEATURES[model_name]]
+        X_scaled = X_scaler.transform(np.log(X + 1e-8))
+        pred_scaled = model.predict(X_scaled)
+        return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
+    except Exception as e:
+        print(f"⚠️ Error in {model_name}: {e}")
+        return np.full(len(input_data), np.nan)
 
-    if ksieff <= ksiefflim:
-        As1 = xeff * beff * fcd / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * beff * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calc_PT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
+def calc_max_rods(bw: float, fi: float, cnom: float) -> int:
     smax = max(20, fi)
-    a1 = cnom + fi_str + fi + smax / 2
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
+    pitch = fi + smax
+    available_space = bw - 2*cnom + smax
+    n_max = 2 * math.floor(available_space / pitch)
+    return n_max
 
-    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
+def generate_all_combinations(MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float):
+    possible_fck = [16, 20, 25, 30, 35, 40, 45, 50]
+    possible_fi = [8, 10, 12, 14, 16, 20, 25, 28, 32]
+    
+    all_combinations = []
+    for fck, fi in product(possible_fck, possible_fi):
+        n_max = calc_max_rods(bw, fi, cnom)  # Fixed variable name from 'b' to 'bw'
+        for n1, n2 in product(range(n_max + 1), range(n_max + 1)):
+            all_combinations.append({
+                'MEd': MEd,
+                'beff': beff,
+                'bw': bw,
+                'h': h,
+                'hf': hf,
+                'cnom': cnom,
+                'fck': fck,
+                'fi': fi,
+                'n1': n1,
+                'n2': n2,
+            })
+    return pd.DataFrame(all_combinations)
 
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = xeff * beff * fcd / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * beff * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calc_PT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
-    smax = max(20, fi)
-    a1 = cnom + fi_str + fi * 3/2 + smax
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
-
-    xeff = quadratic_equation(-0.5 * beff * fcd, beff * fcd * d, -MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
-
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = xeff * beff * fcd / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (MEd * 1e6 - xeff * beff * fcd * (d - 0.5 * xeff)) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * beff * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calc_RZT_1r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
-    a1 = cnom + fi / 2 + fi_str
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
-
-    xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
-                             hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
-
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calc_RZT_2r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
-    smax = max(20, fi)
-    a1 = cnom + fi_str + fi + smax / 2
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
-
-    xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
-                             hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
-
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calc_RZT_3r_plus(MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck):
-    smax = max(20, fi)
-    a1 = cnom + fi_str + fi *3/2 + smax
-    a2 = cnom + fi / 2 + fi_str
-    d = h - a1
-
-    xeff = quadratic_equation(-0.5 * bw * fcd, bw * fcd * d, 
-                             hf * (beff - bw) * fcd * (d - 0.5 * hf) - MEd * 1e6, h)
-    if xeff is None:
-        return float('inf'), float('inf'), float('inf'), None
-
-    ksieff = xeff / d
-    ksiefflim = 0.8 * 0.0035 / (0.0035 + fyd / 200_000)
-
-    if ksieff <= ksiefflim:
-        As1 = (xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        As2 = 0
-        reinforcement_type = '1r'
-    else:
-        xeff = ksiefflim * d
-        As2 = (-xeff * bw * fcd * (d - 0.5 * xeff) - hf * (beff - bw) * fcd * (d - 0.5 * hf) + MEd * 1e6) / (fyd * (d - a2))
-        As1 = (As2 * fyd + xeff * bw * fcd + hf * (beff - bw) * fcd) / fyd
-        reinforcement_type = '2r'
-
-    return As1, As2, calc_cost(beff, bw, h, hf, fck, As1, As2), reinforcement_type
-
-
-def calculate_number_of_rods(As: float, fi: float) -> tuple[int, float]:
-    """Return number of bars and the provided reinforcement area."""
-    if As <= 0 or math.isinf(As):
-        return 0, 0.0
-    area_bar = math.pi * fi**2 / 4
-    n = math.ceil(As / area_bar)
-    return n, n * area_bar
-
-
-def check_rods_fit(
-    bw: float, cnom: float, num_rods: int, fi: float, smax: float, layers: int = 1
-) -> bool:
-    """Check clear spacing rules in *one* reinforcement layer."""
-    if num_rods == 0:
-        return True
-    required = 2 * cnom + num_rods * fi + smax * (num_rods - 1)
-    return required <= layers * bw
-
-
-@dataclass
-class Inputs:
-    MEd: float
-    beff: float
-    bw: float
-    h: float
-    hf: float
-    cnom: float
-    fi_str: float
-
-
-def find_optimal_scenario(
-    inputs: dict[str, float], possible_fi: list[int], possible_fck: list[int]
-) -> dict:
-    """Search all (fck, fi, layout) combinations – return the cheapest fit."""
-    MEd, beff, bw, h, hf, cnom, fi_str = (
-        inputs[k] for k in ("MEd", "beff", "bw", "h", "hf", "cnom", "fi_str")
+def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float):
+    # Calculate derived parameters
+    combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
+    combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
+    combinations_df['As2'] = combinations_df['n2'] * (combinations_df['fi']**2) * math.pi / 4
+    combinations_df['ro1'] = combinations_df['As1'] / (combinations_df['beff'] * combinations_df['hf'] + combinations_df['bw'] * (combinations_df['h'] - combinations_df['hf']))
+    combinations_df['ro2'] = combinations_df['As2'] / (combinations_df['beff'] * combinations_df['hf'] + combinations_df['bw'] * (combinations_df['h'] - combinations_df['hf']))
+    
+    # Batch predictions
+    print("Running batch predictions...")
+    combinations_df['Mcr'] = predict_section_batch(combinations_df, 'Mcr')
+    combinations_df['MRd'] = predict_section_batch(combinations_df, 'MRd')
+    combinations_df['Wk'] = predict_section_batch(combinations_df, 'Wk')
+    
+    # Calculate costs
+    combinations_df['Cost'] = combinations_df.apply(
+        lambda row: calc_cost(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1'], row['As2']), 
+        axis=1
     )
-    fyk = 500.0
-    best = {"cost": float("inf")}
+    
+    # Filter valid solutions
+    valid_solutions = combinations_df[
+        (combinations_df['Wk'] < wk_max) & 
+        (combinations_df['MRd'] > combinations_df['MEd'])
+    ].copy()
+    
+    return valid_solutions
 
-    for fck in possible_fck:
-        fcd = fck / 1.4
-        fyd = fyk / 1.15
-        for fi in possible_fi:
-            smax = max(20, fi)
-            a1 = {
-                1: cnom + fi_str + fi / 2,
-                2: cnom + fi_str + fi + smax / 2,
-                3: cnom + fi_str + 1.5 * fi + smax,
-            }
-            for layers, _ in a1.items():
-                # decide "pure-T" or "Ribbed T"
-                d = h - a1[layers]
-                MRd = (beff * hf * fcd * (d - 0.5 * hf)) / 1e6
-                t_or_r = "PT" if MEd < MRd else "RZT"
-                func = globals()[f"calc_{t_or_r}_{layers}r_plus"]
-
-                As1, As2, cost, rtype = func(
-                    MEd, beff, bw, h, hf, fi, fi_str, cnom, fcd, fyd, fck
-                )
-                n1, act1 = calculate_number_of_rods(As1, fi)
-                n2, act2 = calculate_number_of_rods(As2, fi)
-                fits = check_rods_fit(bw, cnom, n1, fi, smax, layers) and check_rods_fit(
-                    bw, cnom, n2, fi, smax, layers
-                )
-
-                if fits and cost < best["cost"]:
-                    best = {
-                        "cost": cost,
-                        "fck": fck,
-                        "fi": fi,
-                        "type": t_or_r,
-                        "layers": layers,
-                        "reinforcement_type": rtype,
-                        "As1": As1,
-                        "As2": As2,
-                        "num_rods_As1": n1,
-                        "num_rods_As2": n2,
-                        "actual_As1": act1,
-                        "actual_As2": act2,
-                        "fit_check": fits,
-                    }
-    return best
+def find_optimal_solution(MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float, wk_max: float):  # Added missing parameters
+    # Generate all possible combinations
+    print("Generating all combinations...")
+    all_combinations = generate_all_combinations(MEd, beff, bw, h, hf, cnom)  # Fixed parameters
+    
+    # Process in batches
+    valid_solutions = process_combinations_batch(all_combinations, wk_max)
+    
+    if valid_solutions.empty:
+        print("No valid solutions found that satisfy wk < wk_max and MRd > MEd")
+        return None
+    
+    # Find optimal solution
+    optimal_idx = valid_solutions['Cost'].idxmin()
+    optimal_solution = valid_solutions.loc[optimal_idx].to_dict()
+    
+    return optimal_solution

@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 15000000
+num_iterations = 2000000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -43,7 +43,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
     # Geometry of section
     b = np.random.uniform(low=100, high=2000)
-    h = np.random.uniform(low=100, high=1500)
+    h = np.random.uniform(low=100, high=1000)
     
     # Concrete choice
     f_ck = np.random.choice([16, 20, 25, 30, 35, 40, 45, 50])
@@ -203,15 +203,9 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
     #   5. Filtering / constraints
     #####################################################################
-    if ksi_eff > ksi_eff_lim:
-        continue
-    if M_Rd < M_Ed:
-        continue
     if d < 2*a_1:
         continue
     if n1 < n2:
-        continue
-    if w_k > w_k_max:
         continue
 
     # Min & max area constraints

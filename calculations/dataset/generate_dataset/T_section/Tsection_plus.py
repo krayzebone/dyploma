@@ -237,8 +237,10 @@ def calc_crack(MEqp: float,
     # Crack width calculation
     kt = 0.4
     sigmas = (acs * MEqp / JII) * (d - xII)
+    print(sigmas)
     Aceff = bw * min(2.5 * (h - d), (h - xI) / 3)
     roeff = As1 / Aceff
+    
 
     k1 = 0.8
     k2 = 0.5
@@ -255,6 +257,45 @@ def calc_crack(MEqp: float,
 num_iterations = 150000
 data_list = []
 
+MEqp=300 * 1e6
+beff=900
+bw=800
+h=300
+hf=100
+fi=20
+fck=30
+As1=22*fi**2*math.pi/4
+As2=5*fi**2*math.pi/4
+fyk=500
+fistr=8
+cnom=30
+
+results=calc_crack(MEqp, 
+               beff, 
+               bw, 
+               h, 
+               hf, 
+               fck, 
+               fyk,
+               fi,
+               fistr,
+               cnom,
+               As1,
+               As2,)
+
+cost = calc_cost(
+    beff,
+    bw,
+    h,
+    hf,
+    fck,
+    As1,
+    As2,
+)
+
+print(results, cost)
+
+"""
 for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     MEd = np.random.uniform(low=100, high=10000) * 1e6
@@ -363,3 +404,4 @@ if data_list:
 else:
     print("\nNo valid cases found.")
 
+"""

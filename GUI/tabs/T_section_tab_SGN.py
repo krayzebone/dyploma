@@ -436,6 +436,9 @@ class CalculationDataT:
         self.As2 = None
         self.num_rods_As1 = None  # Number of tension rods
         self.num_rods_As2 = None  # Number of compression rods
+        self.num_rods_layer1 = None
+        self.num_rods_layer2 = None
+        self.num_compression_rods = None
         self.act1 = None
         self.act2 = None
 
@@ -522,7 +525,7 @@ class TSectionTabSGN(QWidget):
             "fi_str [mm]",
         ]
         self.inputs: dict[str, QLineEdit] = {}
-        box = QGroupBox("Parametry przekroju")
+        box = QGroupBox("Section parameters")
         lay = QGridLayout(box)
         for row, txt in enumerate(labels):
             lay.addWidget(QLabel(txt), row, 0)
@@ -557,14 +560,14 @@ class TSectionTabSGN(QWidget):
         }
         self.fck_check: dict[str, QCheckBox] = {}
 
-        box = QGroupBox("Klasa betonu")
+        box = QGroupBox("Concrete class")
         lay = QVBoxLayout(box)
         for label in self.fck_opts:
             cb = QCheckBox(label)
             self.fck_check[label] = cb
             lay.addWidget(cb)
         lay.addStretch()
-        btn_all = QPushButton("Zaznacz wszystkie")
+        btn_all = QPushButton("Select all")
         btn_all.clicked.connect(lambda _=None: [cb.setChecked(True) for cb in self.fck_check.values()])
         lay.addWidget(btn_all)
         
@@ -590,7 +593,7 @@ class TSectionTabSGN(QWidget):
         }
         self.fi_check: dict[str, QCheckBox] = {}
 
-        box = QGroupBox("Średnica zbrojenia")
+        box = QGroupBox("Rebar diameter")
         lay = QVBoxLayout(box)
         for label in self.fi_opts:
             cb = QCheckBox(label)
@@ -614,19 +617,17 @@ class TSectionTabSGN(QWidget):
     # --- Results ------------------------------------------------------------
     def _add_results_group(self, grid: QGridLayout, *, row: int) -> None:
         labels = [
-            "Klasa betonu: ",
-            "Średnica zbrojenia: ",
-            "Zbrojenie rozciągane w pierwszej warstwie: ",
-            "Zbrojenie rozciągane w drugiej warstwie: ",
-            "Zbrojenie ściskane: ",
+            "Concrete class: ",
+            "Rebar diameter: ",
+            "Number of tension rods in the first layer: ",
+            "Number of tension rods in the second layer: ",
+            "Number of compression rods: ",
             "As1_req [mm²]: ",
             "As2_req [mm²]: ",
-            "Liczba prętów rozciąganych: ",
-            "Liczba prętów ściskanych: ",
             "As1_prov [mm²]: ",
             "As2_prov [mm²]: ",
-            "Rozstaw prętów: ",
-            "Całkowity koszt [zł/mb]: ",
+            "Rods spacing: ",
+            "Section cost [zł/mb]: ",
         ]
         self.result: dict[str, QLineEdit] = {}
         box = QGroupBox("Optymalny przekrój")
@@ -704,23 +705,24 @@ class TSectionTabSGN(QWidget):
         self.data_storeT.As2 = best["As2"]
         self.data_storeT.num_rods_As1 = best["num_rods_As1"]  # Store number of tension rods
         self.data_storeT.num_rods_As2 = best["num_rods_As2"]  # Store number of compression rods
+        self.data_storeT.num_rods_layer1 = best["rods_layer1"]
+        self.data_storeT.num_rods_layer2 = best["rods_layer2"]
+        self.data_storeT.num_compression_rods = best["rods_compression"]
         self.data_storeT.act1 = best["num_rods_As1"] * math.pi * best["fi"]**2 /4
         self.data_storeT.act2 = best["num_rods_As2"] * math.pi * best["fi"]**2 /4
 
     def _show(self, b: dict) -> None:
-        self.result["Klasa betonu: "].setText(f"C{b['fck']}/{b['fck']+5}")
-        self.result["Średnica zbrojenia: "].setText(f"Ø{b['fi']} mm")
-        self.result["Zbrojenie rozciągane w pierwszej warstwie: "].setText(str(b["rods_layer1"]))
-        self.result["Zbrojenie rozciągane w drugiej warstwie: "].setText(str(b["rods_layer2"]))
-        self.result["Zbrojenie ściskane: "].setText(str(b["rods_compression"]))
+        self.result["Concrete class: "].setText(f"C{b['fck']}/{b['fck']+5}")
+        self.result["Rebar diameter: "].setText(f"Ø{b['fi']} mm")
+        self.result["Number of tension rods in the first layer: "].setText(str(b["rods_layer1"]))
+        self.result["Number of tension rods in the second layer: "].setText(str(b["rods_layer2"]))
+        self.result["Number of compression rods: "].setText(str(b["rods_compression"]))
         self.result["As1_req [mm²]: "].setText(f"{b['As1']:.1f}")
         self.result["As2_req [mm²]: "].setText(f"{b['As2']:.1f}" if b["As2"] > 0 else "0.0")
-        self.result["Liczba prętów rozciąganych: "].setText(str(b["num_rods_As1"]))
-        self.result["Liczba prętów ściskanych: "].setText(str(b["num_rods_As2"]))
         self.result["As1_prov [mm²]: "].setText(f"{b['actual_As1']:.1f}")
         self.result["As2_prov [mm²]: "].setText(f"{b['actual_As2']:.1f}" if b["actual_As2"] > 0 else "0.0")
-        self.result["Rozstaw prętów: "].setText("Tak" if b["fit_check"] else "Nie")
-        self.result["Całkowity koszt [zł/mb]: "].setText(f"{b['cost']:.2f}")
+        self.result["Rods spacing: "].setText("Tak" if b["fit_check"] else "Nie")
+        self.result["Section cost [zł/mb]: "].setText(f"{b['cost']:.2f}")
 
 # -----------------------  run it  -------------------------------------------
 

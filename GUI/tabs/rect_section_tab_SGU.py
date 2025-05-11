@@ -33,7 +33,7 @@ from .optimization_module_rect import generate_all_combinations
 from .optimization_module_rect import process_combinations_batch
 from .optimization_module_rect import find_optimal_solution
 
-def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+def predict_section(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
             'model': r"nn_models\rect_section\Mcr_model\model.keras",
@@ -56,6 +56,7 @@ def predict_section(MEd: float, b: float, h: float, fck: float, fi: float, cnom:
             'scaler_y': r"nn_models\rect_section\cost_model\scaler_y.pkl"
         }
     }
+    MEd = MEqp
 
     MODEL_FEATURES = {
         'Mcr': ['b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
@@ -140,6 +141,17 @@ class RectSectionTabSGU(QWidget):
         group = QGroupBox("Calculation Parameters and Results")
         group_layout = QVBoxLayout(group)
 
+        # Add MEqp input box at the top of calculation group
+        hbox = QHBoxLayout()
+        lbl = QLabel("MEqp for prediction [kNm]")
+        lbl.setFixedWidth(250)
+        self.MEqp_input = QLineEdit()
+        self.MEqp_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.MEqp_input.setFixedHeight(28)
+        hbox.addWidget(lbl)
+        hbox.addWidget(self.MEqp_input)
+        group_layout.addLayout(hbox)
+
         self.result_fields = {}
         fields = [
             ("Moment [kNm]", "MEd"),
@@ -198,17 +210,6 @@ class RectSectionTabSGU(QWidget):
     def _build_optimization_group(self, layout: QVBoxLayout) -> None:
         opt_group = QGroupBox("Optimized Section Parameters")
         opt_layout = QVBoxLayout(opt_group)
-
-        # Add MEqp input box at the top of optimization group
-        hbox = QHBoxLayout()
-        lbl = QLabel("MEqp for prediction [kNm]")
-        lbl.setFixedWidth(250)
-        self.MEqp_input = QLineEdit()
-        self.MEqp_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.MEqp_input.setFixedHeight(28)
-        hbox.addWidget(lbl)
-        hbox.addWidget(self.MEqp_input)
-        opt_layout.addLayout(hbox)
 
         self.optimize_btn = QPushButton("Optimize Section")
         self.optimize_btn.clicked.connect(self._on_optimize)
@@ -287,7 +288,10 @@ class RectSectionTabSGU(QWidget):
 
     def _on_optimize(self) -> None:
         try:
-            MEd = float(self.result_fields["MEd"].text())
+            # Use MEqp input if provided, otherwise use MEd
+            MEqp_text = self.MEqp_input.text()
+            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
+            
             b = float(self.result_fields["b"].text())
             h = float(self.result_fields["h"].text())
             cnom = 30

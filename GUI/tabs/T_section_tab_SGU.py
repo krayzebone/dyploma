@@ -27,40 +27,40 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFontMetrics
 from GUI.tabs.T_section_tab_SGN import CalculationDataT
 
-from .optimization_module_rect import predict_section_batch
-from .optimization_module_rect import calc_max_rods
-from .optimization_module_rect import generate_all_combinations
-from .optimization_module_rect import process_combinations_batch
-from .optimization_module_rect import find_optimal_solution
+from .optimization_module_T import predict_section_batch
+from .optimization_module_T import calc_max_rods
+from .optimization_module_T import generate_all_combinations
+from .optimization_module_T import process_combinations_batch
+from .optimization_module_T import find_optimal_solution
 
-def predict_section(MEd: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
-            'model': r"nn_models\rect_section\Mcr_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\Mcr_model\scaler_y.pkl"
+            'model': r"nn_models\Tsectionplus\Mcr_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\Mcr_model\scaler_y.pkl"
         },
         'MRd': {
-            'model': r"nn_models\rect_section\MRd_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\MRd_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\MRd_model\scaler_y.pkl"
+            'model': r"nn_models\Tsectionplus\MRd_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\MRd_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\MRd_model\scaler_y.pkl"
         },
         'Wk': {
-            'model': r"nn_models\rect_section\Wk_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\Wk_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\Wk_model\scaler_y.pkl"
+            'model': r"nn_models\Tsectionplus\Wk_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\Wk_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\Wk_model\scaler_y.pkl"
         },
         'Cost': {
-            'model': r"nn_models\rect_section\cost_model\model.keras",
-            'scaler_X': r"nn_models\rect_section\cost_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\rect_section\cost_model\scaler_y.pkl"
+            'model': r"nn_models\Tsectionplus\cost_model\model.keras",
+            'scaler_X': r"nn_models\Tsectionplus\cost_model\scaler_X.pkl",
+            'scaler_y': r"nn_models\Tsectionplus\cost_model\scaler_y.pkl"
         }
     }
 
     MODEL_FEATURES = {
         'Mcr': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
         'MRd': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
-        'Wk': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
+        'Wk': ['MEqp', 'beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
         'Cost': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2']
     }
     
@@ -70,7 +70,7 @@ def predict_section(MEd: float, beff: float, bw:float, h: float, hf: float, fck:
     ro2 = As2 / (beff * d) if (beff * d) > 0 else 0
     
     feature_values = {
-        'MEd': float(MEd),
+        'MEqp': float(MEqp),
         'beff': float(beff),
         'bw': float(bw),
         'h': float(h),
@@ -144,6 +144,7 @@ class TSectionTabSGU(QWidget):
 
         self.result_fields = {}
         fields = [
+            ("MEqp for prediction [kNm]", "MEqp"),  # Added MEqp input box
             ("Moment [kNm]", "MEd"),
             ("Flange width [mm]", "beff"),
             ("Web width [mm]", "bw"),
@@ -155,13 +156,15 @@ class TSectionTabSGU(QWidget):
             ("Provided As2 [mm²]", "act2"),
             ("Number of tension rods", "num_rods_As1"),
             ("Number of compression rods", "num_rods_As2"),
+            ("Pręty rozciągane w 1 warstwie", "rods_layer1"),
+            ("Pręty rozciągane w 2 warstwie", "rods_layer2")
         ]
         for label_text, key in fields:
             hbox = QHBoxLayout()
             lbl = QLabel(label_text)
             lbl.setFixedWidth(250)
             out = QLineEdit()
-            out.setReadOnly(True)
+            out.setReadOnly(key != "MEqp")  # Make MEqp editable, others read-only
             out.setAlignment(Qt.AlignmentFlag.AlignRight)
             out.setFixedHeight(28)
             hbox.addWidget(lbl)
@@ -202,17 +205,6 @@ class TSectionTabSGU(QWidget):
     def _build_optimization_group(self, layout: QVBoxLayout) -> None:
         opt_group = QGroupBox("Optimized Section Parameters")
         opt_layout = QVBoxLayout(opt_group)
-
-        # Add MEqp input box at the top of optimization group
-        hbox = QHBoxLayout()
-        lbl = QLabel("MEqp for prediction [kNm]")
-        lbl.setFixedWidth(250)
-        self.MEqp_input = QLineEdit()
-        self.MEqp_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.MEqp_input.setFixedHeight(28)
-        hbox.addWidget(lbl)
-        hbox.addWidget(self.MEqp_input)
-        opt_layout.addLayout(hbox)
 
         self.optimize_btn = QPushButton("Optimize Section")
         self.optimize_btn.clicked.connect(self._on_optimize)
@@ -259,6 +251,12 @@ class TSectionTabSGU(QWidget):
         self.result_fields["act2"].setText(f"{ds.act2:.1f}" if ds.act2 is not None else "N/A")
         self.result_fields["num_rods_As1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
         self.result_fields["num_rods_As2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
+        self.result_fields["rods_layer1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
+        self.result_fields["rods_layer2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
+        
+        # Initialize MEqp with MEd value if not set
+        if "MEqp" not in self.result_fields or not self.result_fields["MEqp"].text():
+            self.result_fields["MEqp"].setText(f"{ds.MEd:.2f}" if ds.MEd is not None else "N/A")
 
     def _on_predict(self) -> None:
         try:
@@ -267,9 +265,12 @@ class TSectionTabSGU(QWidget):
             n1 = int(n1_txt) if n1_txt not in ("N/A", "") else 0
             n2 = int(n2_txt) if n2_txt not in ("N/A", "") else 0
 
-            # Use MEqp input if provided, otherwise use MEd
-            MEqp_text = self.MEqp_input.text()
-            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
+            # Get MEqp value from input box
+            MEqp_text = self.result_fields["MEqp"].text()
+            if MEqp_text in ("N/A", ""):
+                MEqp = float(self.result_fields["MEd"].text())
+            else:
+                MEqp = float(MEqp_text)
             
             beff = float(self.result_fields["beff"].text())
             bw = float(self.result_fields["bw"].text())
@@ -283,7 +284,7 @@ class TSectionTabSGU(QWidget):
             As1 = n1 * math.pi * (fi ** 2) / 4
             As2 = n2 * math.pi * (fi ** 2) / 4
 
-            results = predict_section(MEd, b, h, fck, fi, cnom, As1, As2)
+            results = predict_section(MEqp, beff, bw, h, hf, fck, fi, cnom, As1, As2)
             self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
             #self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
             self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
@@ -295,7 +296,8 @@ class TSectionTabSGU(QWidget):
 
     def _on_optimize(self) -> None:
         try:
-            MEd = float(self.result_fields["MEd"].text())
+            MEqp_text = self.result_fields["MEqp"].text()
+            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
             beff = float(self.result_fields["beff"].text())
             bw = float(self.result_fields["bw"].text())
             h = float(self.result_fields["h"].text())
