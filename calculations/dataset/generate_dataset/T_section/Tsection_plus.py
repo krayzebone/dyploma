@@ -237,7 +237,6 @@ def calc_crack(MEqp: float,
     # Crack width calculation
     kt = 0.4
     sigmas = (acs * MEqp / JII) * (d - xII)
-    print(sigmas)
     Aceff = bw * min(2.5 * (h - d), (h - xI) / 3)
     roeff = As1 / Aceff
     
@@ -336,8 +335,27 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     if d < 2 * a1:
         continue
+
     if n1 < n2:
             continue
+    
+    if Wk > 5:
+        continue
+
+    fctm = 0.3 * fck**(2/3)
+
+    # Min & max area constraints
+    A_s_min = max(0.26*(fctm/fyk)*beff*d, 0.0013*(beff*hf + bw*(h-hf)))
+    A_s_max = 0.04 * (beff*hf + bw*(h-hf))
+    if (As1 + As2) < A_s_min or (As1 + As2) > A_s_max:
+        continue
+
+    # Check if bars physically fit
+    spacing = min(20, fi)
+    width_needed_tension = n1*fi + (n1 - 1)*spacing
+    width_needed_compression = n2*fi + (n2 - 1)*spacing
+    if width_needed_tension > 2 * bw or width_needed_compression > bw:
+        continue
 
 
 
@@ -367,7 +385,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 if data_list:
     df = pd.DataFrame(data_list)
     df = df.dropna()
-    df.to_parquet("datasetSGUMRd.parquet", index=False)
+    df.to_parquet("datasetSGUTsect.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

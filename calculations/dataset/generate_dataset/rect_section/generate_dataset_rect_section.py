@@ -208,6 +208,9 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     if n1 < n2:
         continue
 
+    if w_k > 5:
+        continue
+
     # Min & max area constraints
     A_s_min = max(0.26*(f_ctm/f_yk)*b*d, 0.0013*b*d)
     A_s_max = 0.04 * b * h

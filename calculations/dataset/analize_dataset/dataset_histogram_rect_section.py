@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the data from the Parquet file
-file_path = r"dataset_files\rect_section\dataset_rect_section.parquet"
+file_path = r"dataset_files\rect_section\datasetSGU.parquet"
 df = pd.read_parquet(file_path)
 
 # Specify the features to plot
 features = ["MEd", "MRd", "b", "d", "h", 'a1', "fi", "fck", "n1", "n2", "ro1", "ro2", "wk", "Mcr", "cost"]
+features= ["wk"]
 
 # Set up the matplotlib figure
 plt.figure(figsize=(15, 10))

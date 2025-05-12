@@ -39,7 +39,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"datasets\dataset_rect_section.parquet",
+    'filepath': r"dataset_files\rect_section\datasetSGU.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
