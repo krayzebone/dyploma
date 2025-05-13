@@ -30,41 +30,35 @@ from GUI.tabs.T_section_tab_SGN import CalculationDataT
 
 from .optimization_module_T import find_best_solution
 
-def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+def predict_sectionn1(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
-            'model': r"nn_models\Tsectionplus\Mcr_model\model.keras",
-            'scaler_X': r"nn_models\Tsectionplus\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\Tsectionplus\Mcr_model\scaler_y.pkl"
+            'model': r"neural_networks\Tsectionn1\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_y.pkl"
         },
         'MRd': {
-            'model': r"nn_models\Tsectionplus\MRd_model\model.keras",
-            'scaler_X': r"nn_models\Tsectionplus\MRd_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\Tsectionplus\MRd_model\scaler_y.pkl"
+            'model': r"neural_networks\Tsectionn1\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\MRd_model\scaler_y.pkl"
         },
         'Wk': {
-            'model': r"nn_models\Tsectionplus\Wk_model\model.keras",
-            'scaler_X': r"nn_models\Tsectionplus\Wk_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\Tsectionplus\Wk_model\scaler_y.pkl"
-        },
-        'Cost': {
-            'model': r"nn_models\Tsectionplus\cost_model\model.keras",
-            'scaler_X': r"nn_models\Tsectionplus\cost_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\Tsectionplus\cost_model\scaler_y.pkl"
+            'model': r"neural_networks\Tsectionn1\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\Wk_model\scaler_y.pkl"
         }
     }
 
     MODEL_FEATURES = {
-        'Mcr': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
-        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
-        'Wk': ['MEqp', 'beff', 'bw', 'h', 'hf', 'cnom', 'd', 'fi', 'fck', 'ro1', 'ro2'],
-        'Cost': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2']
+        'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1"],
+        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
     }
     
     # Calculate derived parameters
     d = h - cnom - fi / 2
     ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
-    ro2 = As2 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    ro2 = 0
     
     feature_values = {
         'MEqp': float(MEqp),
@@ -77,7 +71,6 @@ def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
-        'ro2': float(ro2)
     }
     
     results = {}
@@ -100,6 +93,74 @@ def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck
             results[model_name] = None
     
     return results
+
+def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+    MODEL_PATHS = {
+        'Mcr': {
+            'model': r"neural_networks\Tsectionn2\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_y.pkl"
+        },
+        'MRd': {
+            'model': r"neural_networks\Tsectionn2\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\MRd_model\scaler_y.pkl"
+        },
+        'Wk': {
+            'model': r"neural_networks\Tsectionn2\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\Wk_model\scaler_y.pkl"
+        }
+    }
+
+    MODEL_FEATURES = {
+        'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
+        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
+    }
+    
+    # Calculate derived parameters
+    d = h - cnom - fi / 2 - 8
+    ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    ro2 = As2 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    
+    feature_values = {
+        'MEqp': float(MEqp),
+        'beff': float(beff),
+        'bw': float(bw),
+        'h': float(h),
+        'hf': float(hf),
+        'd': float(d),
+        'cnom': float(cnom),
+        'fi': float(fi),
+        'fck': float(fck),
+        'ro1': float(ro1),
+        'ro2': float(ro2)
+    }
+    print(f" w sieci MEqp={MEqp}, beff={beff}, bw={bw}, h={h}, hf={hf}, fck={fck}, fi={fi}, d={d}, cnom={cnom}, As1={As1}, As2={As2}, ro1={ro1}, ro2={ro2}")
+    
+    results = {}
+    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+        try:
+            model_info = MODEL_PATHS[model_name]
+            model = tf.keras.models.load_model(model_info['model'], compile=False)
+            X_scaler = joblib.load(model_info['scaler_X'])
+            y_scaler = joblib.load(model_info['scaler_y'])
+
+            X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
+            X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
+
+            X_scaled = X_scaler.transform(np.log(X + 1e-8))
+            pred_scaled = model.predict(X_scaled)
+            pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
+            results[model_name] = pred
+        except Exception as e:
+            print(f"⚠️ Error in {model_name}: {e}")
+            results[model_name] = None
+            print(f" results={results}")
+    
+    return results
+
 
 class TSectionTabSGU(QWidget):
     """Tab that displays the stored calculation results from CalculationData."""
@@ -278,11 +339,24 @@ class TSectionTabSGU(QWidget):
             As1 = n1 * math.pi * (fi ** 2) / 4
             As2 = n2 * math.pi * (fi ** 2) / 4
 
-            results = predict_section(MEqp, beff, bw, h, hf, fck, fi, cnom, As1, As2)
-            self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
-            self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
-            self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
-            #self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+
+            if As2 == 0:
+                results = predict_sectionn1(MEqp, beff, bw, h, hf, fck, fi, cnom, As1, As2)
+                print("n1")
+                self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
+                self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
+                self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
+                #self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+            else:
+                results = predict_sectionn2(MEqp, beff, bw, h, hf, fck, fi, cnom, As1, As2)
+                print("n2")
+                print(f" poza siecia MEqp={MEqp}, beff={beff}, bw={bw}, h={h}, hf={hf}, fck={fck}, fi={fi}, cnom={cnom}, As1={As1}, As2={As2}")
+                self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
+                self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
+                self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
+                #self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+
+
         except Exception as e:
             print(f"Error in prediction: {e}")
             for key in ["pred_Mcr", "pred_MRd", "pred_Wk", "pred_Cost"]:

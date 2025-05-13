@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 200000
+num_iterations = 400000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -54,7 +54,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     c_nom = np.random.uniform(low=30, high=60)
     
     # External moment
-    M_Ed = np.random.uniform(low=10, high=1000) * 1e6
+    M_Ed = np.random.uniform(low=10, high=2000) * 1e6
+    MEqp = np.random.uniform(low=10, high=2000) * 1e6
 
     # Material constants
     E_s = 200_000       # MPa (steel)
@@ -84,7 +85,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     # Sample reinforcement ratios
     ro_s1 = np.random.choice(valid_ro, p=weights)
-    ro_s2 = np.random.choice(valid_ro, p=weights)
+    ro_s2 = 0
 
     # Calculate exact integer bar counts
     area_one_bar = math.pi * (fi_gl**2) / 4.0
@@ -179,7 +180,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     k_t = 0.4
     sigma_s_cr = k_t * alpha_cs * f_ctm * (d - x_I)/(h - x_I)
-    sigma_s = (alpha_cs * M_Ed / I_II) * (d - x_II)
+    sigma_s = (alpha_cs * MEqp / I_II) * (d - x_II)
     delta_sigma = max(sigma_s - sigma_s_cr, 0.6 * sigma_s)
     epsilon_cr = delta_sigma / E_s
 
@@ -230,6 +231,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     data_entry = {
         'MRd': M_Rd / 1e6,
         'MEd': M_Ed / 1e6,
+        'MEqp':MEqp /1e6,
         'b': b,
         'h': h,
         'fi': fi_gl,
@@ -240,31 +242,16 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'n2': n2,
         'ro1': ro_s1,
         'ro2': ro_s2,
-        'wk': w_k,
+        'Wk': w_k,
         'Mcr': M_cr / 1e6,
-        'cost': cost,
-        'Ac': A_c,
-        'u': u,
-        'h0': h_0,
-        'fiRH': fi_RH,
-        'Bt0': Beta_t0,
-        'Bfcm': Beta_fcm,
-        'fi0': fi_0,
-        'Eceff': E_c_eff,
-        'alphacs': alpha_cs,
-        'Acs': A_cs,
-        'Scs': S_cs,
-        'X_I': x_I,
-        'I_I': I_I,
-        'Wcs': W_cs,
-
+        'Cost': cost,
     }
     data_list.append(data_entry)
 
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_parquet("datasetSGU.parquet", index=False)
+    df.to_parquet("datasetSGUrectn1.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

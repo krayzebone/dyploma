@@ -1,7 +1,9 @@
 import math
+
+import joblib
 import pandas as pd
 import numpy as np
-import tqdm
+import tensorflow as tf
 
 Es  = 200_000   # steel modulus
 Ecm = 31_000    # concrete secant modulus
@@ -210,25 +212,157 @@ def calc_crack(MEqp: float,
     return Mcr, Wk
 
 
-MEd = 1050 * 1e6
-MEqp = 1500 * 1e6
+def predict_sectionn1(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+    MODEL_PATHS = {
+        'Mcr': {
+            'model': r"neural_networks\Tsectionn1\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_y.pkl"
+        },
+        'MRd': {
+            'model': r"neural_networks\Tsectionn1\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\MRd_model\scaler_y.pkl"
+        },
+        'Wk': {
+            'model': r"neural_networks\Tsectionn1\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn1\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn1\models\Wk_model\scaler_y.pkl"
+        }
+    }
 
-beff = 3000
+    MODEL_FEATURES = {
+        'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1"],
+        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
+    }
+    
+    # Calculate derived parameters
+    d = h - cnom - fi / 2 - 8
+    ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    print(ro1)
+    
+    feature_values = {
+        'MEqp': float(MEqp),
+        'beff': float(beff),
+        'bw': float(bw),
+        'h': float(h),
+        'hf': float(hf),
+        'd': float(d),
+        'cnom': float(cnom),
+        'fi': float(fi),
+        'fck': float(fck),
+        'ro1': float(ro1),
+    }
+    
+    results = {}
+    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+        try:
+            model_info = MODEL_PATHS[model_name]
+            model = tf.keras.models.load_model(model_info['model'], compile=False)
+            X_scaler = joblib.load(model_info['scaler_X'])
+            y_scaler = joblib.load(model_info['scaler_y'])
+
+            X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
+            X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
+
+            X_scaled = X_scaler.transform(np.log(X + 1e-8))
+            pred_scaled = model.predict(X_scaled)
+            pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
+            results[model_name] = pred
+        except Exception as e:
+            print(f"⚠️ Error in {model_name}: {e}")
+            results[model_name] = None
+    
+    return results
+
+def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+    MODEL_PATHS = {
+        'Mcr': {
+            'model': r"neural_networks\Tsectionn2\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_y.pkl"
+        },
+        'MRd': {
+            'model': r"neural_networks\Tsectionn2\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\MRd_model\scaler_y.pkl"
+        },
+        'Wk': {
+            'model': r"neural_networks\Tsectionn2\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\Tsectionn2\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\Tsectionn2\models\Wk_model\scaler_y.pkl"
+        }
+    }
+
+    MODEL_FEATURES = {
+        'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
+        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
+    }
+    
+    # Calculate derived parameters
+    d = h - cnom - fi / 2 - 8
+    ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    ro2 = As2 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+
+    print(ro1, ro2)
+    
+    feature_values = {
+        'MEqp': float(MEqp),
+        'beff': float(beff),
+        'bw': float(bw),
+        'h': float(h),
+        'hf': float(hf),
+        'd': float(d),
+        'cnom': float(cnom),
+        'fi': float(fi),
+        'fck': float(fck),
+        'ro1': float(ro1),
+        'ro2': float(ro2)
+    }
+    
+    results = {}
+    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+        try:
+            model_info = MODEL_PATHS[model_name]
+            model = tf.keras.models.load_model(model_info['model'], compile=False)
+            X_scaler = joblib.load(model_info['scaler_X'])
+            y_scaler = joblib.load(model_info['scaler_y'])
+
+            X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
+            X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
+
+            X_scaled = X_scaler.transform(np.log(X + 1e-8))
+            pred_scaled = model.predict(X_scaled)
+            pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
+            results[model_name] = pred
+        except Exception as e:
+            print(f"⚠️ Error in {model_name}: {e}")
+            results[model_name] = None
+    
+    return results
+
+
+MEd = 550 * 1e6
+MEqp = 600 * 1e6
+
+beff = 900
 bw = 800
-h = 1200
-hf=250
+h = 300
+hf=100
 
-fi = 10
+fi = 20
 fistr = 8
 cnom = 30
 
-n1=27
-n2=0
+n1=22
+n2=5
 
 As1 = n1 * math.pi * fi**2 / 4
-As2 = n1 * math.pi * fi**2 / 4
+As2 = n2 * math.pi * fi**2 / 4
 
-fck = 16
+fck = 30
 fyk = 500
 Es = 200_000
 Ecm = 31_000
@@ -259,6 +393,31 @@ Mcr, Wk = calc_crack(MEqp,
                As2,
                )
 
-print(f" MRd={MRd / 1e6}")
-print(f" Mcr={Mcr}")
-print(f" Wk={Wk}")
+if n2>0:
+    pred2 = predict_sectionn2(MEqp/1e6, beff, bw, h, hf, fck, fi, cnom, As1, As2)
+    Mcr_pred = pred2.get('Mcr')
+    MRd_pred = pred2.get('MRd')
+    Wk_pred  = pred2.get('Wk')
+    Cost_pred = pred2.get('Cost')  # Might be None if not used
+else:
+    pred = predict_sectionn1(MEqp/1e6, beff, bw, h, hf, fck, fi, cnom, As1, As2)
+
+    Mcr_pred = pred.get('Mcr')
+    MRd_pred = pred.get('MRd')
+    Wk_pred  = pred.get('Wk')
+    Cost_pred = pred.get('Cost')  # Might be None if not used
+
+d = h - cnom - fi / 2 - 8
+ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+ro2 = As2 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+
+
+
+print(f" MRd_real={MRd / 1e6}")
+print(f" Mcr_real={Mcr / 1e6}")
+print(f" Wk_real={Wk}")
+
+print(f" MRd_pred={MRd_pred}")
+print(f" Mcr_pred={Mcr_pred}")
+print(f" Wk_pred={Wk_pred}")
+

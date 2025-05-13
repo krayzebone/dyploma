@@ -6,7 +6,7 @@ import math
 from itertools import product
 from tqdm import tqdm
 
-def calc_cost(
+def calc_costn1(
     beff: float,
     bw: float,
     h: float,
@@ -31,10 +31,42 @@ def calc_cost(
         60: 800,
     }
 
+    steel_cost = (As1) / 1_000_000 * 7_900 * 5  # mm²→m² * ρ * price
+    conc_area = ((beff * hf) + (h - hf) * bw) / 1_000_000 - (As1) / 1_000_000
+    conc_cost = conc_area * concrete_cost_by_class[int(fck)]
+    return steel_cost + conc_cost
+
+def calc_costn2(
+    beff: float,
+    bw: float,
+    h: float,
+    hf: float,
+    fck: float,
+    As1: float,
+    As2: float,  # Make As2 optional with default 0
+) -> float:
+    """Concrete + steel cost in PLN."""
+    concrete_cost_by_class = {
+        8: 230,
+        12: 250,
+        16: 300,
+        20: 350,
+        25: 400,
+        30: 450,
+        35: 500,
+        40: 550,
+        45: 600,
+        50: 650,
+        55: 700,
+        60: 800,
+    }
+
     steel_cost = (As1 + As2) / 1_000_000 * 7_900 * 5  # mm²→m² * ρ * price
     conc_area = ((beff * hf) + (h - hf) * bw) / 1_000_000 - (As1 + As2) / 1_000_000
     conc_cost = conc_area * concrete_cost_by_class[int(fck)]
     return steel_cost + conc_cost
+
+
 
 def predict_section_batchn1(input_data: pd.DataFrame, model_name: str):
     MODEL_PATHS = {
@@ -180,7 +212,9 @@ def process_combinations_batchn1(combinations_df: pd.DataFrame, wk_max: float, M
     combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
     combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
     combinations_df['ro1'] = combinations_df['As1'] / (combinations_df['beff'] * combinations_df['hf'] + combinations_df['bw'] * (combinations_df['h'] - combinations_df['hf']))
-    
+    combinations_df['As2'] = 0
+    combinations_df['ro2'] = 0
+    combinations_df['n2'] = 0
     # Batch predictions
     print("Running batch predictions for model without ro2...")
     combinations_df['Mcr'] = predict_section_batchn1(combinations_df, 'Mcr')
@@ -189,7 +223,7 @@ def process_combinations_batchn1(combinations_df: pd.DataFrame, wk_max: float, M
     
     # Calculate costs
     combinations_df['Cost'] = combinations_df.apply(
-        lambda row: calc_cost(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1']), 
+        lambda row: calc_costn1(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1']), 
         axis=1
     )
 
@@ -220,7 +254,7 @@ def process_combinations_batchn2(combinations_df: pd.DataFrame, wk_max: float, M
     
     # Calculate costs
     combinations_df['Cost'] = combinations_df.apply(
-        lambda row: calc_cost(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1'], row['As2']), 
+        lambda row: calc_costn2(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1'], row['As2']), 
         axis=1
     )
 
@@ -251,6 +285,7 @@ def find_optimal_solutionn1(MEqp: float, MEd: float, beff: float, bw: float, h: 
     # Find optimal solution
     optimal_idx = valid_solutions['Cost'].idxmin()
     optimal_solution = valid_solutions.loc[optimal_idx].to_dict()
+    print(optimal_solution)
     
     return optimal_solution
 
@@ -280,6 +315,7 @@ def find_best_solution(MEqp: float, MEd: float, beff: float, bw: float, h: float
     print("\n=== Evaluating solutions with ro2 ===")
     solution_n2 = find_optimal_solutionn2(MEqp, MEd, beff, bw, h, hf, cnom, wk_max)
     
+    
     if solution_n1 is None and solution_n2 is None:
         print("No valid solutions found in either model")
         return None
@@ -293,7 +329,11 @@ def find_best_solution(MEqp: float, MEd: float, beff: float, bw: float, h: float
         # Compare costs
         if solution_n1['Cost'] < solution_n2['Cost']:
             print(f"Solution without ro2 is cheaper ({solution_n1['Cost']} vs {solution_n2['Cost']})")
+            print(f" n1={solution_n1}")
+            print(f" n2={solution_n2}")
             return solution_n1
         else:
+            print(f" n1={solution_n1}")
+            print(f" n2={solution_n2}")
             print(f"Solution with ro2 is cheaper ({solution_n2['Cost']} vs {solution_n1['Cost']})")
             return solution_n2
