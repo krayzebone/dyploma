@@ -27,11 +27,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFontMetrics
 from GUI.tabs.T_section_tab_SGN import CalculationDataT
 
-from .optimization_module_T import predict_section_batch
-from .optimization_module_T import calc_max_rods
-from .optimization_module_T import generate_all_combinations
-from .optimization_module_T import process_combinations_batch
-from .optimization_module_T import find_optimal_solution
+
+from .optimization_module_T import find_best_solution
 
 def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
@@ -59,15 +56,15 @@ def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck
 
     MODEL_FEATURES = {
         'Mcr': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
-        'MRd': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
-        'Wk': ['MEqp', 'beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2'],
+        'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk': ['MEqp', 'beff', 'bw', 'h', 'hf', 'cnom', 'd', 'fi', 'fck', 'ro1', 'ro2'],
         'Cost': ['beff', 'bw', 'h', 'hf', 'fi', 'fck', 'ro1', 'ro2']
     }
     
     # Calculate derived parameters
     d = h - cnom - fi / 2
-    ro1 = As1 / (beff * d) if (beff * d) > 0 else 0
-    ro2 = As2 / (beff * d) if (beff * d) > 0 else 0
+    ro1 = As1 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
+    ro2 = As2 / ((beff * hf) + (bw * (h-hf))) if ((beff * hf) + (bw * (h-hf))) > 0 else 0
     
     feature_values = {
         'MEqp': float(MEqp),
@@ -76,6 +73,7 @@ def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck
         'h': float(h),
         'hf': float(hf),
         'd': float(d),
+        'cnom': float(cnom),
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
@@ -292,41 +290,87 @@ class TSectionTabSGU(QWidget):
 
     def _on_optimize(self) -> None:
         try:
-            # Get both moment values
+            # Extract moment values
             MEqp_text = self.result_fields["MEqp"].text()
             MEd = float(self.result_fields["MEd"].text())
             MEqp = float(MEqp_text) if MEqp_text else MEd  # Use MEqp if provided, else MEd
             print(f"Using MEqp value: {MEqp}")
             
+            # Extract geometry values
             beff = float(self.result_fields["beff"].text())
             bw = float(self.result_fields["bw"].text())
             h = float(self.result_fields["h"].text())
             hf = float(self.result_fields["hf"].text())
-            cnom = 30
-            wk_max = 0.3
+            cnom = 30  # Fixed cover
+            wk_max = 0.3  # Limit for crack width
 
-            optimal = find_optimal_solution(MEqp, MEd, beff, bw, h, hf, cnom, wk_max)
+            # Run optimization (already uses updated d logic internally)
+            optimal = find_best_solution(MEqp, MEd, beff, bw, h, hf, cnom, wk_max)
             
+            # Handle no solution
             if not optimal:
                 for field in self.opt_result_fields.values():
                     field.setText("No valid solution")
                 return
-                
-            # Verify that MRd > MEd (the actual requirement)
-            if optimal['MRd'] <= MEd:
+
+            # Safety check: MRd must exceed MEd
+            if optimal["MRd"] <= MEd:
                 for field in self.opt_result_fields.values():
                     field.setText("MRd ≤ MEd - unsafe")
                 return
 
-            self.opt_result_fields["opt_fi"].setText(f"{optimal['fi']:.0f}")
-            self.opt_result_fields["opt_fck"].setText(f"C{optimal['fck']}/{int(optimal['fck'])+5}")
-            self.opt_result_fields["opt_n1"].setText(str(int(optimal['n1'])))
-            self.opt_result_fields["opt_n2"].setText(str(int(optimal['n2'])))
+            # Display results
+            self.opt_result_fields["opt_fi"].setText(f"{int(optimal['fi'])}")
+            self.opt_result_fields["opt_fck"].setText(f"C{int(optimal['fck'])}/{int(optimal['fck']) + 5}")
+            self.opt_result_fields["opt_n1"].setText(str(int(optimal["n1"])))
+            self.opt_result_fields["opt_n2"].setText(str(int(optimal["n2"])))
             self.opt_result_fields["opt_MRd"].setText(f"{optimal['MRd']:.2f}")
             self.opt_result_fields["opt_Mcr"].setText(f"{optimal['Mcr']:.2f}")
             self.opt_result_fields["opt_Wk"].setText(f"{optimal['Wk']:.4f}")
             self.opt_result_fields["opt_Cost"].setText(f"{optimal['Cost']:.2f}")
+
         except Exception as e:
-            print(f"Optimization failed: {e}")
+            print(f"⚠️ Optimization failed: {e}")
             for field in self.opt_result_fields.values():
                 field.setText("Error")
+
+            try:
+                # Get both moment values
+                MEqp_text = self.result_fields["MEqp"].text()
+                MEd = float(self.result_fields["MEd"].text())
+                MEqp = float(MEqp_text) if MEqp_text else MEd  # Use MEqp if provided, else MEd
+                print(f"Using MEqp value: {MEqp}")
+                
+                beff = float(self.result_fields["beff"].text())
+                bw = float(self.result_fields["bw"].text())
+                h = float(self.result_fields["h"].text())
+                hf = float(self.result_fields["hf"].text())
+                cnom = 30
+                wk_max = 0.3
+
+                optimal = find_best_solution(MEqp, MEd, beff, bw, h, hf, cnom, wk_max)
+
+                
+                if not optimal:
+                    for field in self.opt_result_fields.values():
+                        field.setText("No valid solution")
+                    return
+                    
+                # Verify that MRd > MEd (the actual requirement)
+                if optimal['MRd'] <= MEd:
+                    for field in self.opt_result_fields.values():
+                        field.setText("MRd ≤ MEd - unsafe")
+                    return
+
+                self.opt_result_fields["opt_fi"].setText(f"{optimal['fi']:.0f}")
+                self.opt_result_fields["opt_fck"].setText(f"C{optimal['fck']}/{int(optimal['fck'])+5}")
+                self.opt_result_fields["opt_n1"].setText(str(int(optimal['n1'])))
+                self.opt_result_fields["opt_n2"].setText(str(int(optimal['n2'])))
+                self.opt_result_fields["opt_MRd"].setText(f"{optimal['MRd']:.2f}")
+                self.opt_result_fields["opt_Mcr"].setText(f"{optimal['Mcr']:.2f}")
+                self.opt_result_fields["opt_Wk"].setText(f"{optimal['Wk']:.4f}")
+                self.opt_result_fields["opt_Cost"].setText(f"{optimal['Cost']:.2f}")
+            except Exception as e:
+                print(f"Optimization failed: {e}")
+                for field in self.opt_result_fields.values():
+                    field.setText("Error")

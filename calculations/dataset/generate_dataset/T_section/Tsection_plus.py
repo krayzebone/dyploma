@@ -250,7 +250,7 @@ def calc_crack(MEqp: float,
 
     return Mcr, Wk
 
-num_iterations = 4500000
+num_iterations = 3150000
 data_list = []
 
 
@@ -333,8 +333,11 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     if d < 2 * a1:
         continue
 
-    if n1 < n2:
-            continue
+    if n2 < 1:
+        continue
+
+    if n2 > n1:
+        continue
     
     if Wk > 5:
         continue
@@ -383,7 +386,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 if data_list:
     df = pd.DataFrame(data_list)
     df = df.dropna()
-    df.to_parquet("datasetSGUTsect.parquet", index=False)
+    df.to_parquet("datasetSGUTsectn2.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")
