@@ -61,7 +61,7 @@ def predict_section(MEqp: float, b: float, h: float, fck: float, fi: float, cnom
     MODEL_FEATURES = {
         'Mcr': ['b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
         'MRd': ['b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
-        'Wk': ['MEd', 'b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
+        'Wk': ['MEqp', 'b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2'],
         'Cost': ['MEd', 'b', 'h', 'd', 'fi', 'fck', 'ro1', 'ro2']
     }
     
