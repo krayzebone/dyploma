@@ -33,26 +33,26 @@ from .optimization_module_T import find_best_solution
 def predict_sectionn1(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
-            'model': r"neural_networks\Tsectionn1\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn1\models\Mcr_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n1\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n1\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n1\models\Mcr_model\scaler_y.pkl"
         },
         'MRd': {
-            'model': r"neural_networks\Tsectionn1\models\MRd_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn1\models\MRd_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn1\models\MRd_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n1\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n1\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n1\models\MRd_model\scaler_y.pkl"
         },
         'Wk': {
-            'model': r"neural_networks\Tsectionn1\models\Wk_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn1\models\Wk_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn1\models\Wk_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n1\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n1\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n1\models\Wk_model\scaler_y.pkl"
         }
     }
 
     MODEL_FEATURES = {
         'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1"],
         'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
-        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
+        'Wk': ["MEd", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
     }
     
     # Calculate derived parameters
@@ -97,26 +97,26 @@ def predict_sectionn1(MEqp: float, beff: float, bw:float, h: float, hf: float, f
 def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
         'Mcr': {
-            'model': r"neural_networks\Tsectionn2\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn2\models\Mcr_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n2\models\Mcr_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n2\models\Mcr_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n2\models\Mcr_model\scaler_y.pkl"
         },
         'MRd': {
-            'model': r"neural_networks\Tsectionn2\models\MRd_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn2\models\MRd_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn2\models\MRd_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n2\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n2\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n2\models\MRd_model\scaler_y.pkl"
         },
         'Wk': {
-            'model': r"neural_networks\Tsectionn2\models\Wk_model\model.keras",
-            'scaler_X': r"neural_networks\Tsectionn2\models\Wk_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\Tsectionn2\models\Wk_model\scaler_y.pkl"
+            'model': r"neural_networks\T_section_plus_n2\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\T_section_plus_n2\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\T_section_plus_n2\models\Wk_model\scaler_y.pkl"
         }
     }
 
     MODEL_FEATURES = {
         'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
         'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
-        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
+        'Wk': ["MEd", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
     }
     
     # Calculate derived parameters
