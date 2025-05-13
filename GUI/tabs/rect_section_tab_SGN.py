@@ -43,38 +43,25 @@ def quadratic_equation(a: float, b: float, c: float, limit: float) -> float | No
     return min(valid) if valid else None
 
 
-def calc_cost(
-    b: float,
-    h: float,
-    fck: float,
-    As1: float,
-    As2: float,
-) -> float:
-    """Concrete + steel cost in PLN."""
+def calc_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
     concrete_cost_by_class = {
-        8: 230,
-        12: 250,
-        16: 300,
-        20: 350,
-        25: 400,
-        30: 450,
-        35: 500,
-        40: 550,
-        45: 600,
-        50: 650,
-        55: 700,
-        60: 800,
+        8: 230, 12: 250, 16: 300, 20: 350, 25: 400, 30: 450, 35: 500, 40: 550, 45: 600, 50: 650, 55: 700, 60: 800
     }
-
-    # Steel cost - properly handles both singly and doubly reinforced cases
-    steel_cost = (As1 + As2) / 1_000_000 * 7_900 * 5  # mm²→m² * ρ * price
     
-    # Concrete cost - subtract only the area occupied by steel
-    conc_area = (b * h) / 1_000_000  # Total area in m²
-    steel_area = (As1 + As2) / 1_000_000  # Steel area in m²
-    conc_cost = (conc_area - steel_area) * concrete_cost_by_class[int(fck)]
+    steel_cost_by_weight = 5  # zł/kg
+    steel_density = 7900      # kg/m3
     
-    return steel_cost + conc_cost
+    steel_area = (A_s1 + A_s2) / 1_000_000  # mm^2 -> m^2
+    steel_weight = steel_area * steel_density
+    steel_cost = steel_weight * steel_cost_by_weight
+    
+    concrete_area = (b * h) / 1_000_000 - steel_area
+    f_ck_int = int(f_ck)
+    concrete_cost = concrete_area * concrete_cost_by_class[f_ck_int]
+    
+    total_cost = steel_cost + concrete_cost
+    
+    return total_cost
 
 
 def calc_rect_section(MEd, b, h, fck, fi_gl, c_nom, fi_str):

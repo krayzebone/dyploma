@@ -14,9 +14,9 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"dataset_files\Tsection\datasetSGUTsect.parquet")
 
-features = ["MEd", "b", "d", "h", "fi", "fck", "ro1", "ro2"]
+features = ["MEqp", "beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"]
 target = ["wk"]
 
 X = df[features].values   # shape: (n_samples, 8)
@@ -46,11 +46,11 @@ def create_model(trial):
     model.add(layers.Input(shape=(X_train.shape[1],)))
     
     # Number of hidden layers
-    n_layers = trial.suggest_int("n_layers", 1, 8)
+    n_layers = trial.suggest_int("n_layers", 1, 5)
     
     for i in range(n_layers):
-        n_units = trial.suggest_int(f"n_units_l{i}", 16, 600)
-        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.6)
+        n_units = trial.suggest_int(f"n_units_l{i}", 16, 500)
+        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
 
         model.add(layers.Dense(n_units, activation=None))
         model.add(layers.Activation('relu'))
@@ -62,7 +62,7 @@ def create_model(trial):
     model.add(layers.Dense(1, activation='linear'))
     
     # Learning rate
-    lr = trial.suggest_float("lr", 1e-7, 1e-1, log=True)
+    lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss='mse',
@@ -86,7 +86,7 @@ def objective(trial):
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=150,
+        epochs=100,
         batch_size=batch_size,
         callbacks=[early_stop],
         verbose=0

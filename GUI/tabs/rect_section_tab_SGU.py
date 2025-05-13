@@ -67,8 +67,8 @@ def predict_section(MEqp: float, b: float, h: float, fck: float, fi: float, cnom
     
     # Calculate derived parameters
     d = h - cnom - fi / 2
-    ro1 = As1 / (b * d) if (b * d) > 0 else 0
-    ro2 = As2 / (b * d) if (b * d) > 0 else 0
+    ro1 = As1 / (b * h) if (b * h) > 0 else 0
+    ro2 = As2 / (b * h) if (b * h) > 0 else 0
     
     feature_values = {
         'MEd': float(MEd),
@@ -185,7 +185,7 @@ class RectSectionTabSGU(QWidget):
             ("Predicted Mcr [kNm]", "pred_Mcr"),
             #("Predicted MRd [kNm]", "pred_MRd"),
             ("Predicted Wk [mm]", "pred_Wk"),
-            ("Predicted Cost", "pred_Cost"),
+            #("Predicted Cost", "pred_Cost"),
         ]
         for txt, key in preds:
             hbox = QHBoxLayout()
@@ -280,7 +280,7 @@ class RectSectionTabSGU(QWidget):
             self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
             #self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
             self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
-            self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+            #self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
         except Exception as e:
             print(f"Error in prediction: {e}")
             for key in ["pred_Mcr", "pred_MRd", "pred_Wk", "pred_Cost"]:
@@ -288,21 +288,31 @@ class RectSectionTabSGU(QWidget):
 
     def _on_optimize(self) -> None:
         try:
-            # Use MEqp input if provided, otherwise use MEd
+            # Get both MEqp and MEd values
             MEqp_text = self.MEqp_input.text()
-            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
+            MEd = float(self.result_fields["MEd"].text())
+            MEqp = float(MEqp_text) if MEqp_text else MEd  # Use MEqp if provided, else MEd
             
             b = float(self.result_fields["b"].text())
             h = float(self.result_fields["h"].text())
             cnom = 30
             wk_max = 0.3
 
-            optimal = find_optimal_solution(MEd, b, h, cnom, wk_max)
+            # Find optimal solution based on MEqp (or MEd if MEqp not provided)
+            optimal = find_optimal_solution(MEqp, MEd, b, h, cnom, wk_max)
+            
             if not optimal:
                 for field in self.opt_result_fields.values():
                     field.setText("No valid solution")
                 return
+                
+            # Verify that MRd > MEd (the actual requirement)
+            if optimal['MRd'] <= MEd:
+                for field in self.opt_result_fields.values():
+                    field.setText("MRd ≤ MEd - unsafe")
+                return
 
+            # If all checks passed, display the results
             self.opt_result_fields["opt_fi"].setText(f"{optimal['fi']:.0f}")
             self.opt_result_fields["opt_fck"].setText(f"C{optimal['fck']}/{int(optimal['fck'])+5}")
             self.opt_result_fields["opt_n1"].setText(str(int(optimal['n1'])))
@@ -311,6 +321,7 @@ class RectSectionTabSGU(QWidget):
             self.opt_result_fields["opt_Mcr"].setText(f"{optimal['Mcr']:.2f}")
             self.opt_result_fields["opt_Wk"].setText(f"{optimal['Wk']:.4f}")
             self.opt_result_fields["opt_Cost"].setText(f"{optimal['Cost']:.2f}")
+            
         except Exception as e:
             print(f"Optimization failed: {e}")
             for field in self.opt_result_fields.values():

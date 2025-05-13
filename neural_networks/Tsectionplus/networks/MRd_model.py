@@ -39,8 +39,8 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"dataset_files\Tsection\datasetSGUMRd.parquet",
-    'features': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
+    'filepath': r"dataset_files\Tsection\datasetSGUTsect.parquet",
+    'features': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
     'random_state': 42
@@ -55,6 +55,8 @@ TRANSFORMATION_CONFIG = {
         'bw': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'h': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'hf': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'cnom': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'fi': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'fck': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'ro1': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
@@ -73,17 +75,18 @@ SCALER_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 315, 'activation': 'relu', 'dropout': 0.00463261993637544},
+        {'units': 156, 'activation': 'relu', 'dropout': 0.0059590043278233695},
+        {'units': 269, 'activation': 'relu', 'dropout': 0.43664501202407197}
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate=0.00018775216843688273),
+    'optimizer': Adam(learning_rate=0.0007827156936973673),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
-    'batch_size': 82,
-    'epochs': 100,
+    'batch_size': 162,
+    'epochs': 3000,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),

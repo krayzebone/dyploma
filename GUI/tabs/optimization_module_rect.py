@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
     concrete_cost_by_class = {
-        8: 230, 12: 250, 16: 300, 20: 350, 25: 400, 30: 450, 35: 500, 40: 550, 
-        45: 600, 50: 650, 55: 700, 60: 800
+        8: 230, 12: 250, 16: 300, 20: 350, 25: 400, 30: 450, 35: 500, 40: 550, 45: 600, 50: 650, 55: 700, 60: 800
     }
+    
     steel_cost_by_weight = 5  # zł/kg
     steel_density = 7900      # kg/m3
     
@@ -20,9 +20,11 @@ def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: f
     
     concrete_area = (b * h) / 1_000_000 - steel_area
     f_ck_int = int(f_ck)
-    concrete_cost = concrete_area * concrete_cost_by_class.get(f_ck_int, 800)
+    concrete_cost = concrete_area * concrete_cost_by_class[f_ck_int]
     
-    return steel_cost + concrete_cost
+    total_cost = steel_cost + concrete_cost
+    
+    return total_cost
 
 def predict_section_batch(input_data: pd.DataFrame, model_name: str):
     MODEL_PATHS = {
@@ -75,7 +77,7 @@ def generate_all_combinations(MEd: float, b: float, h: float, cnom: float):
     all_combinations = []
     for fck, fi in product(possible_fck, possible_fi):
         n_max = calc_max_rods(b, fi, cnom)
-        for n1, n2 in product(range(n_max + 1), range(n_max + 1)):
+        for n1, n2 in product(range(n_max), range(n_max)):
             all_combinations.append({
                 'MEd': MEd,
                 'b': b,
@@ -88,7 +90,7 @@ def generate_all_combinations(MEd: float, b: float, h: float, cnom: float):
             })
     return pd.DataFrame(all_combinations)
 
-def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float):
+def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float, MEd: float):
     # Calculate derived parameters
     combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
     combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
@@ -111,18 +113,18 @@ def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float):
     # Filter valid solutions
     valid_solutions = combinations_df[
         (combinations_df['Wk'] < wk_max) & 
-        (combinations_df['MRd'] > combinations_df['MEd'])
+        (combinations_df['MRd'] > MEd)
     ].copy()
     
     return valid_solutions
 
-def find_optimal_solution(MEd: float, b: float, h: float, cnom: float, wk_max: float):
+def find_optimal_solution(MEqp: float, MEd: float, b: float, h: float, cnom: float, wk_max: float):
     # Generate all possible combinations
     print("Generating all combinations...")
-    all_combinations = generate_all_combinations(MEd, b, h, cnom)
+    all_combinations = generate_all_combinations(MEqp, b, h, cnom)
     
     # Process in batches
-    valid_solutions = process_combinations_batch(all_combinations, wk_max)
+    valid_solutions = process_combinations_batch(all_combinations, wk_max, MEd)
     
     if valid_solutions.empty:
         print("No valid solutions found that satisfy wk < wk_max and MRd > MEd")

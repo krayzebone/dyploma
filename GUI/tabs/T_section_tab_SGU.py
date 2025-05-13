@@ -156,8 +156,6 @@ class TSectionTabSGU(QWidget):
             ("Provided As2 [mm²]", "act2"),
             ("Number of tension rods", "num_rods_As1"),
             ("Number of compression rods", "num_rods_As2"),
-            ("Pręty rozciągane w 1 warstwie", "rods_layer1"),
-            ("Pręty rozciągane w 2 warstwie", "rods_layer2")
         ]
         for label_text, key in fields:
             hbox = QHBoxLayout()
@@ -178,9 +176,9 @@ class TSectionTabSGU(QWidget):
 
         preds = [
             ("Predicted Mcr [kNm]", "pred_Mcr"),
-            #("Predicted MRd [kNm]", "pred_MRd"),
+            ("Predicted MRd [kNm]", "pred_MRd"),
             ("Predicted Wk [mm]", "pred_Wk"),
-            ("Predicted Cost", "pred_Cost"),
+            #("Predicted Cost", "pred_Cost"),
         ]
         for txt, key in preds:
             hbox = QHBoxLayout()
@@ -251,8 +249,6 @@ class TSectionTabSGU(QWidget):
         self.result_fields["act2"].setText(f"{ds.act2:.1f}" if ds.act2 is not None else "N/A")
         self.result_fields["num_rods_As1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
         self.result_fields["num_rods_As2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
-        self.result_fields["rods_layer1"].setText(str(ds.num_rods_As1) if ds.num_rods_As1 is not None else "N/A")
-        self.result_fields["rods_layer2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
         
         # Initialize MEqp with MEd value if not set
         if "MEqp" not in self.result_fields or not self.result_fields["MEqp"].text():
@@ -286,9 +282,9 @@ class TSectionTabSGU(QWidget):
 
             results = predict_section(MEqp, beff, bw, h, hf, fck, fi, cnom, As1, As2)
             self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
-            #self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
+            self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
             self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
-            self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
+            #self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
         except Exception as e:
             print(f"Error in prediction: {e}")
             for key in ["pred_Mcr", "pred_MRd", "pred_Wk", "pred_Cost"]:
@@ -296,8 +292,12 @@ class TSectionTabSGU(QWidget):
 
     def _on_optimize(self) -> None:
         try:
+            # Get both moment values
             MEqp_text = self.result_fields["MEqp"].text()
-            MEd = float(MEqp_text) if MEqp_text else float(self.result_fields["MEd"].text())
+            MEd = float(self.result_fields["MEd"].text())
+            MEqp = float(MEqp_text) if MEqp_text else MEd  # Use MEqp if provided, else MEd
+            print(f"Using MEqp value: {MEqp}")
+            
             beff = float(self.result_fields["beff"].text())
             bw = float(self.result_fields["bw"].text())
             h = float(self.result_fields["h"].text())
@@ -305,10 +305,17 @@ class TSectionTabSGU(QWidget):
             cnom = 30
             wk_max = 0.3
 
-            optimal = find_optimal_solution(MEd, beff, bw, h, hf, cnom, wk_max)
+            optimal = find_optimal_solution(MEqp, MEd, beff, bw, h, hf, cnom, wk_max)
+            
             if not optimal:
                 for field in self.opt_result_fields.values():
                     field.setText("No valid solution")
+                return
+                
+            # Verify that MRd > MEd (the actual requirement)
+            if optimal['MRd'] <= MEd:
+                for field in self.opt_result_fields.values():
+                    field.setText("MRd ≤ MEd - unsafe")
                 return
 
             self.opt_result_fields["opt_fi"].setText(f"{optimal['fi']:.0f}")

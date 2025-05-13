@@ -14,9 +14,9 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"dataset_files\Tsection\datasetSGUTsect.parquet")
 
-features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
+features = ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"]
 target = "MRd"
 
 X = df[features].values   # shape: (n_samples, 8)

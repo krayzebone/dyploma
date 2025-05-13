@@ -89,7 +89,7 @@ def generate_all_combinations(MEd: float, beff: float, bw: float, h: float, hf: 
     all_combinations = []
     for fck, fi in product(possible_fck, possible_fi):
         n_max = calc_max_rods(bw, fi, cnom)  # Fixed variable name from 'b' to 'bw'
-        for n1, n2 in product(range(n_max + 1), range(n_max + 1)):
+        for n1, n2 in product(range(n_max), range(n_max)):
             all_combinations.append({
                 'MEd': MEd,
                 'beff': beff,
@@ -104,7 +104,7 @@ def generate_all_combinations(MEd: float, beff: float, bw: float, h: float, hf: 
             })
     return pd.DataFrame(all_combinations)
 
-def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float):
+def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float, MEd: float):
     # Calculate derived parameters
     combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
     combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
@@ -126,19 +126,19 @@ def process_combinations_batch(combinations_df: pd.DataFrame, wk_max: float):
     
     # Filter valid solutions
     valid_solutions = combinations_df[
-        (combinations_df['Wk'] < wk_max) & 
-        (combinations_df['MRd'] > combinations_df['MEd'])
+        (combinations_df['Wk'] < wk_max) &
+        (combinations_df['MRd'] > MEd)
     ].copy()
     
     return valid_solutions
 
-def find_optimal_solution(MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float, wk_max: float):  # Added missing parameters
+def find_optimal_solution(MEqp: float, MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float, wk_max: float):  # Added missing parameters
     # Generate all possible combinations
     print("Generating all combinations...")
-    all_combinations = generate_all_combinations(MEd, beff, bw, h, hf, cnom)  # Fixed parameters
+    all_combinations = generate_all_combinations(MEqp, beff, bw, h, hf, cnom)  # Fixed parameters
     
     # Process in batches
-    valid_solutions = process_combinations_batch(all_combinations, wk_max)
+    valid_solutions = process_combinations_batch(all_combinations, wk_max, MEd)
     
     if valid_solutions.empty:
         print("No valid solutions found that satisfy wk < wk_max and MRd > MEd")

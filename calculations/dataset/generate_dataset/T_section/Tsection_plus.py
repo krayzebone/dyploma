@@ -98,8 +98,7 @@ def calc_capacity(beff: float,
                 ksieff = xeff / d
                 if ksieff > ksiefflim:
                     xeff = ksiefflim * d
-                return (hf * (beff - bw) * fcd * (d - 0.5 * hf) + 
-                       xeff * bw * fcd * (d - 0.5 * xeff))
+                return (hf * (beff - bw) * fcd * (d - 0.5 * hf) + xeff * bw * fcd * (d - 0.5 * xeff))
 
         # Case 2: Both tension and compression reinforcement
         elif n1 > 0 and n2 > 0:
@@ -126,10 +125,8 @@ def calc_capacity(beff: float,
                     xeff = ksiefflim * d
                 
                 if xeff >= 2 * a2 and xeff <= h:
-                    return (As2 * fyd * (d - a2) + 
-                           hf * (beff - bw) * fcd * (d - 0.5 * hf) + 
-                           xeff * bw * fcd * (d - 0.5 * xeff))
-                elif xeff < 2 * a2:
+                    return (As2 * fyd * (d - a2) + hf * (beff - bw) * fcd * (d - 0.5 * hf) + xeff * bw * fcd * (d - 0.5 * xeff))
+                else:
                     return As1 * fyd * (d - a2)
 
     except Exception as e:
@@ -253,7 +250,7 @@ def calc_crack(MEqp: float,
 
     return Mcr, Wk
 
-num_iterations = 150000
+num_iterations = 4500000
 data_list = []
 
 
@@ -269,7 +266,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 
     fi = np.random.choice([8, 10, 12, 14, 16, 20, 25, 28, 32])
     fistr = 0
-    cnom = 40
+    cnom = np.random.uniform(low=10, high=60)
 
     fck = np.random.choice([16, 20, 25, 30, 35, 40, 45, 50])
     fyk = 500
@@ -362,7 +359,6 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
      # Store final data
     data_entry = {
         'MRd': M_Rd,
-        'MEd': MEd / 1e6,
         'MEqp': MEqp / 1e6,
         'beff': beff,
         'bw': bw,
@@ -370,6 +366,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'hf': hf,
         'fi': fi,
         'fck': fck,
+        'cnom': cnom,
+        'd': d,
         'n1': n1,
         'n2': n2,
         'ro1': ro_s1,
