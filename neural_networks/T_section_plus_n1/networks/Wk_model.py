@@ -50,7 +50,7 @@ def boxcox_inverse(x, lmbda):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\Tsectionn1\datasetSGUTsectn1.parquet",
+    'filepath': r"neural_networks\T_section_plus_n1\dataset\dataset_T_n1.parquet",
     'features': ["MEqp", "beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
     'target': "wk",
     'test_size': 0.3,
@@ -100,7 +100,7 @@ TRAINING_CONFIG = {
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 139,
-    'epochs': 100,
+    'epochs': 200,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=40, min_lr=1e-8),

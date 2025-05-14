@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the data from the Parquet file
-file_path = r"dataset_files\rect_section\datasetSGU.parquet"
+file_path = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1.parquet"
 df = pd.read_parquet(file_path)
 
 # Specify the features to plot
-features = ["MEd", "MRd", "b", "d", "h", 'a1', "fi", "fck", "n1", "n2", "ro1", "ro2", "wk", "Mcr", "cost"]
+features = ["MEd", "MRd", "b", "d", "h", 'a1', "fi", "fck", "n1", "n2", "ro1", "ro2", "Wk", "Mcr", "Cost"]
 features= ["wk"]
 
 # Set up the matplotlib figure

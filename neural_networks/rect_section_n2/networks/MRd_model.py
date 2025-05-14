@@ -39,8 +39,8 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_sectionn1\dataset\dataset_rect_n1.parquet",
-    'features': ["b", "h", "d", "fi", "fck", "ro1"],
+    'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet",
+    'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
     'random_state': 42
@@ -57,6 +57,7 @@ TRANSFORMATION_CONFIG = {
         'fi': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'fck': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'ro1': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'ro2': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
     },
 
     'target': {
@@ -81,7 +82,7 @@ TRAINING_CONFIG = {
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 82,
-    'epochs': 100,
+    'epochs': 200,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
@@ -89,7 +90,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"neural_networks\rect_sectionn1\models\MRd_model",
+    'save_path': r"neural_networks\rect_section_n2\models\MRd_model",
     'visualization': {
         'max_samples': 100000,
         'histogram_bins': 100

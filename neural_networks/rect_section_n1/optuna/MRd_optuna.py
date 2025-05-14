@@ -14,9 +14,9 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1.parquet")
 
-features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
+features = ["b", "d", "h", "fi", "fck", "ro1"]
 target = "MRd"
 
 X = df[features].values   # shape: (n_samples, 8)
@@ -49,7 +49,7 @@ def create_model(trial):
     n_layers = trial.suggest_int("n_layers", 1, 6)
     
     for i in range(n_layers):
-        n_units = trial.suggest_int(f"n_units_l{i}", 16, 400)
+        n_units = trial.suggest_int(f"n_units_l{i}", 16, 600)
         dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
 
         model.add(layers.Dense(n_units, activation=None))

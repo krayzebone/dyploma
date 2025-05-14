@@ -39,7 +39,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\Tsectionn1\datasetSGUTsectn1.parquet",
+    'filepath': r"neural_networks\T_section_plus_n1\dataset\dataset_T_n1.parquet",
     'features': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
     'target': "MRd",
     'test_size': 0.3,
@@ -85,7 +85,7 @@ TRAINING_CONFIG = {
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 162,
-    'epochs': 100,
+    'epochs': 200,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=500, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
@@ -93,7 +93,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"neural_networks\Tsectionn1\models\MRd_model",
+    'save_path': r"neural_networks\T_section_plus_n1\models\MRd_model",
     'visualization': {
         'max_samples': 100000,
         'histogram_bins': 100

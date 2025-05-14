@@ -52,7 +52,7 @@ def predict_sectionn1(MEqp: float, beff: float, bw:float, h: float, hf: float, f
     MODEL_FEATURES = {
         'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1"],
         'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1"],
-        'Wk': ["MEd", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1"]
     }
     
     # Calculate derived parameters
@@ -116,7 +116,7 @@ def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, f
     MODEL_FEATURES = {
         'Mcr': ["beff", "bw", "h", "hf", "fi", "fck", "ro1", "ro2"],
         'MRd': ["beff", "bw", "h", "hf", "cnom", "d", "fi", "fck", "ro1", "ro2"],
-        'Wk': ["MEd", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
+        'Wk': ["MEqp", "beff", "bw", "h", "hf", 'cnom', 'd', "fi", "fck", "ro1", "ro2"]
     }
     
     # Calculate derived parameters
@@ -137,8 +137,6 @@ def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, f
         'ro1': float(ro1),
         'ro2': float(ro2)
     }
-    print(f" w sieci MEqp={MEqp}, beff={beff}, bw={bw}, h={h}, hf={hf}, fck={fck}, fi={fi}, d={d}, cnom={cnom}, As1={As1}, As2={As2}, ro1={ro1}, ro2={ro2}")
-    
     results = {}
     for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
         try:
@@ -368,7 +366,6 @@ class TSectionTabSGU(QWidget):
             MEqp_text = self.result_fields["MEqp"].text()
             MEd = float(self.result_fields["MEd"].text())
             MEqp = float(MEqp_text) if MEqp_text else MEd  # Use MEqp if provided, else MEd
-            print(f"Using MEqp value: {MEqp}")
             
             # Extract geometry values
             beff = float(self.result_fields["beff"].text())

@@ -39,7 +39,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\T_section_plus_n1\datasetSGUTsectn1.parquet",
+    'filepath': r"neural_networks\T_section_plus_n1\dataset\dataset_T_n1.parquet",
     'features': ["beff", "bw", "h", "hf", "fi", "fck", "ro1"],
     'target': "cost",
     'test_size': 0.3,
