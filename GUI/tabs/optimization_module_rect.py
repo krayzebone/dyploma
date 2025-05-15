@@ -72,21 +72,35 @@ def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
-        'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
-        'Wk':   ["MEd", "b", "h", "d", "fi", "fck", "ro1"],
-        'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
+        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'Wk':   ["MEqp", "b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'Cost': ["b", "h", "d", "cnom", "fi", "fck", "ro1"]
     }
     
     try:
         model_info = MODEL_PATHS[model_name]
         model = tf.keras.models.load_model(model_info['model'], compile=False)
-        X_scaler = joblib.load(model_info['scaler_X'])
+        X_scalers_dict = joblib.load(model_info['scaler_X'])  # This is a dictionary of scalers
         y_scaler = joblib.load(model_info['scaler_y'])
 
-        X = input_data[MODEL_FEATURES[model_name]]
-        X_scaled = X_scaler.transform(np.log(X + 1e-8))
+        # Get the features in the correct order
+        features = MODEL_FEATURES[model_name]
+        X = input_data[features]
+        
+        # Apply log transform to each feature
+        X_log = np.log(X + 1e-8)
+        
+        # Scale each feature with its respective scaler
+        X_scaled = np.zeros_like(X_log)
+        for i, feature in enumerate(features):
+            scaler = X_scalers_dict[feature]  # Get the specific scaler for this feature
+            X_scaled[:, i] = scaler.transform(X_log[feature].values.reshape(-1, 1)).flatten()
+        
+        # Make prediction
         pred_scaled = model.predict(X_scaled)
+        
+        # Inverse transform the prediction
         return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
     except Exception as e:
         print(f"⚠️ Error in {model_name}: {e}")
@@ -117,21 +131,35 @@ def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'Wk':   ["MEd", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
+        'Mcr':  ["b", "h", "d", "fi", "cnom", "fck", "ro1", "ro2"],
+        'MRd':  ["b", "h", "d", "fi", "fck", "cnom", "ro1", "ro2"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "cnom", "fck", "ro1", "ro2"],
+        'Cost': ["b", "h", "d", "fi", "fck", "cnom", "ro1", "ro2"]
     }
     
     try:
         model_info = MODEL_PATHS[model_name]
         model = tf.keras.models.load_model(model_info['model'], compile=False)
-        X_scaler = joblib.load(model_info['scaler_X'])
+        X_scalers_dict = joblib.load(model_info['scaler_X'])  # This is a dictionary of scalers
         y_scaler = joblib.load(model_info['scaler_y'])
 
-        X = input_data[MODEL_FEATURES[model_name]]
-        X_scaled = X_scaler.transform(np.log(X + 1e-8))
+        # Get the features in the correct order
+        features = MODEL_FEATURES[model_name]
+        X = input_data[features]
+        
+        # Apply log transform to each feature
+        X_log = np.log(X + 1e-8)
+        
+        # Scale each feature with its respective scaler
+        X_scaled = np.zeros_like(X_log)
+        for i, feature in enumerate(features):
+            scaler = X_scalers_dict[feature]  # Get the specific scaler for this feature
+            X_scaled[:, i] = scaler.transform(X_log[feature].values.reshape(-1, 1)).flatten()
+        
+        # Make prediction
         pred_scaled = model.predict(X_scaled)
+        
+        # Inverse transform the prediction
         return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
     except Exception as e:
         print(f"⚠️ Error in {model_name}: {e}")
@@ -153,7 +181,7 @@ def generate_all_combinations_n1(MEd: float, b: float, h: float, cnom: float):
         n_max = calc_max_rods(b, fi, cnom)
         for n1 in range(0, n_max):
             all_combinations.append({
-                'MEd': MEd,
+                'MEqp': MEd,
                 'b': b,
                 'h': h,
                 'cnom': cnom,
@@ -172,7 +200,7 @@ def generate_all_combinations_n2(MEd: float, b: float, h: float, cnom: float):
         n_max = calc_max_rods(b, fi, cnom)
         for n1, n2 in product(range(n_max), range(n_max)):
             all_combinations.append({
-                'MEd': MEd,
+                'MEqp': MEd,
                 'b': b,
                 'h': h,
                 'cnom': cnom,

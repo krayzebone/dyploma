@@ -14,20 +14,24 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet")
 
-features = ["MEd", "b", "d", "h", "fi", "fck", "ro1", "ro2"]
-target = ["wk"]
+features = ["MEqp", "b", "h", "cnom", "d", "fi", "fck", "ro1"]
+target = ["Wk"]
 
 X = df[features].values   # shape: (n_samples, 8)
 y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
 
-# Standardize the features and targets
+# Apply log transformation to features and target
+X_log = np.log1p(X)  # Using log1p to handle zero values safely
+y_log = np.log1p(y)
+
+# Standardize the log-transformed features and targets
 scaler_X = StandardScaler()
 scaler_y = StandardScaler()
 
-X_scaled = scaler_X.fit_transform(X)
-y_scaled = scaler_y.fit_transform(y)
+X_scaled = scaler_X.fit_transform(X_log)
+y_scaled = scaler_y.fit_transform(y_log)
 
 # Split the data
 X_train, X_val, y_train, y_val = train_test_split(

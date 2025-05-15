@@ -3,10 +3,10 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 80000
+num_iterations = 800000
 data_list = []
 
-def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
+def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float) -> float:
     concrete_cost_by_class = {
         8: 230, 12: 250, 16: 300, 20: 350, 25: 400, 30: 450, 35: 500, 40: 550, 45: 600, 50: 650, 55: 700, 60: 800
     }
@@ -14,7 +14,7 @@ def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: f
     steel_cost_by_weight = 5  # zł/kg
     steel_density = 7900      # kg/m3
     
-    steel_area = (A_s1 + A_s2) / 1_000_000  # mm^2 -> m^2
+    steel_area = (A_s1) / 1_000_000  # mm^2 -> m^2
     steel_weight = steel_area * steel_density
     steel_cost = steel_weight * steel_cost_by_weight
     
@@ -42,8 +42,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #   1. Parametry wejściowe
     #####################################################################
     # Geometry of section
-    b = np.random.uniform(low=100, high=2000)
-    h = np.random.uniform(low=100, high=1000)
+    b = np.random.normal(loc=1000, scale=300)
+    h = np.random.normal(loc=300, scale=200)
     
     # Concrete choice
     f_ck = np.random.choice([16, 20, 25, 30, 35, 40, 45, 50])
@@ -51,7 +51,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     
     # Choose bar diameter from discrete set
     fi_gl = np.random.choice([8, 10, 12, 14, 16, 20, 25, 28, 32])
-    c_nom = np.random.uniform(low=30, high=60)
+    c_nom = np.random.uniform(low=10, high=60)
     
     # External moment
     M_Ed = np.random.uniform(low=10, high=2000) * 1e6
@@ -78,25 +78,16 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     # Parameters for normal distribution of reinforcement ratios
     mu_ro = 0.02
     sigma_ro = 0.01
-    
-    # Create weights for normal distribution sampling
-    weights = np.exp(-0.5 * ((valid_ro - mu_ro) / sigma_ro)**2)
-    weights /= weights.sum()  # Normalize
 
-    # Sample reinforcement ratios
-    ro_s1 = np.random.choice(valid_ro, p=weights)
-    ro_s2 = 0
-
+    ro_s1 = np.clip(
+    np.random.normal(mu_ro, sigma_ro), 0.0001, 0.04)
     # Calculate exact integer bar counts
     area_one_bar = math.pi * (fi_gl**2) / 4.0
     n1 = int(np.round((ro_s1 * b * h) / area_one_bar))
-    n2 = int(np.round((ro_s2 * b * h) / area_one_bar))
 
     # Recalculate exact reinforcement ratios from integer bar counts
     A_s1 = n1 * area_one_bar
-    A_s2 = n2 * area_one_bar
     ro_s1 = A_s1 / (b * h)
-    ro_s2 = A_s2 / (b * h)
 
     # Effective depth
     a_1 = c_nom + fi_gl / 2
@@ -112,13 +103,13 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     f_cd = f_ck / 1.4
     f_yd = f_yk / 1.15
 
-    x_eff = (A_s1*f_yd - A_s2*f_yd) / (b * f_cd)
+    x_eff = (A_s1*f_yd) / (b * f_cd)
     ksi_eff = x_eff / d
     ksi_eff_lim = 0.8 * 0.0035 / (0.0035 + f_yd / E_s)
 
     if ksi_eff > ksi_eff_lim:
         continue
-    M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff) + A_s2 * f_yd * (d - a_1))
+    M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff))
 
     
 
@@ -150,16 +141,16 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     alpha_cs = E_s / E_c_eff
 
     # Transformed area
-    A_cs = A_c + alpha_cs*(A_s1 + A_s2)
+    A_cs = A_c + alpha_cs*(A_s1)
 
     # First moment
-    S_cs = A_c*(h/2) + alpha_cs*(A_s1*d + A_s2*a_1)
+    S_cs = A_c*(h/2) + alpha_cs*(A_s1*d)
 
     # Centroid from the bottom
     x_I = S_cs / A_cs
 
     # Moment of inertia (uncracked)
-    I_I = b*(h**3)/12 + b*h*(h/2 - x_I)**2 + alpha_cs*(A_s1*(d - x_I)**2 + A_s2*(x_I - a_1)**2)
+    I_I = b*(h**3)/12 + b*h*(h/2 - x_I)**2 + alpha_cs*(A_s1*(d - x_I)**2)
 
     # Section modulus for tension
     W_cs = I_I / (h - x_I)
@@ -168,9 +159,9 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     M_cr = f_ctm * W_cs
 
     # 4.3 Stage II analysis
-    ro_s  = ro_s1 + ro_s2
+    ro_s  = ro_s1
     delta_ul = a_1 / d
-    k_lu = (ro_s1 + delta_ul * ro_s2) / ro_s if ro_s > 0 else 0
+    k_lu = (ro_s1) / ro_s if ro_s > 0 else 0
 
     ro_cs = ro_s * alpha_cs
     sqrt_arg = ro_cs * (ro_cs + 2*k_lu)
@@ -181,7 +172,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     x_II   = ksi_II * d
 
     # Moment of inertia (cracked)
-    I_II = b*(x_II**3)/3 + alpha_cs*(A_s1*(d - x_II)**2 + A_s2*(x_II - a_1)**2)
+    I_II = b*(x_II**3)/3 + alpha_cs*(A_s1*(d - x_II)**2)
 
     k_t = 0.4
     sigma_s_cr = k_t * alpha_cs * f_ctm * (d - x_I)/(h - x_I)
@@ -198,7 +189,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     if A_c_eff <= 0:
         continue
 
-    ro_p_eff = (A_s1 + A_s2) / A_c_eff
+    ro_p_eff = (A_s1) / A_c_eff
     if ro_p_eff <= 0:
         continue
 
@@ -211,26 +202,23 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #####################################################################
     if d < 2*a_1:
         continue
-    if n1 < n2:
-        continue
 
-    if w_k > 5:
+    if w_k > 2:
         continue
 
     # Min & max area constraints
     A_s_min = max(0.26*(f_ctm/f_yk)*b*d, 0.0013*b*d)
     A_s_max = 0.04 * b * h
-    if (A_s1 + A_s2) < A_s_min or (A_s1 + A_s2) > A_s_max:
+    if (A_s1) < A_s_min or (A_s1) > A_s_max:
         continue
 
     # Check if bars physically fit
     spacing = min(20, fi_gl)
     width_needed_tension = n1*fi_gl + (n1 - 1)*spacing
-    width_needed_compression = n2*fi_gl + (n2 - 1)*spacing
-    if width_needed_tension > b or width_needed_compression > b:
+    if width_needed_tension > b:
         continue
 
-    cost = calculate_section_cost(b, h, f_ck, A_s1, A_s2)
+    cost = calculate_section_cost(b, h, f_ck, A_s1)
 
     # Store final data
     data_entry = {
@@ -244,9 +232,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'a1': a_1,
         'd': d,
         'n1': n1,
-        'n2': n2,
+        'cnom': c_nom,
         'ro1': ro_s1,
-        'ro2': ro_s2,
         'Wk': w_k,
         'Mcr': M_cr / 1e6,
         'Cost': cost,
@@ -256,7 +243,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test.parquet", index=False)
+    df.to_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

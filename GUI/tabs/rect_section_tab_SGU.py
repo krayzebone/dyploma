@@ -29,7 +29,7 @@ from GUI.tabs.rect_section_tab_SGN import CalculationData
 
 from .optimization_module_rect import find_best_solution
 
-def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
+def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float):
     MODEL_PATHS = {
         'Mcr': {
             'model': r"neural_networks\rect_section_n1\models\Mcr_model\model.keras",
@@ -54,26 +54,25 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
-        'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
-        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
-        'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
+        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'Wk':   ["MEqp", "b", "h", "d", "cnom", "fi", "fck", "ro1"],
+        'Cost': ["b", "h", "d", "fi", "cnom", "fck", "ro1"]
     }
     
     # Calculate derived parameters
     d = h - cnom - fi / 2 - 8
     ro1 = As1 / (b * h) if (b * h) > 0 else 0
-    ro2 = As2 / (b * h) if (b * h) > 0 else 0
     
     feature_values = {
         'MEqp': float(MEqp),
         'b': float(b),
         'h': float(h),
         'd': float(d),
+        'cnom': float(cnom),
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
-        'ro2': float(ro2)
     }
     
     results = {}
@@ -81,21 +80,37 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
         try:
             model_info = MODEL_PATHS[model_name]
             model = tf.keras.models.load_model(model_info['model'], compile=False)
-            X_scaler = joblib.load(model_info['scaler_X'])
+            
+            # Load scalers - X_scaler is a dictionary, y_scaler is a single scaler
+            X_scalers_dict = joblib.load(model_info['scaler_X'])
             y_scaler = joblib.load(model_info['scaler_y'])
 
+            # Prepare input data
             X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
-            X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
-
-            X_scaled = X_scaler.transform(np.log(X + 1e-8))
+            X_df = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
+            
+            # Apply log transform to each feature (as done in training)
+            X_log = np.log(X_df + 1e-8)
+            
+            # Scale each feature with its respective scaler
+            X_scaled = np.zeros_like(X_log)
+            for i, feature in enumerate(MODEL_FEATURES[model_name]):
+                scaler = X_scalers_dict[feature]  # Get the specific scaler for this feature
+                X_scaled[:, i] = scaler.transform(X_log[feature].values.reshape(-1, 1)).flatten()
+            
+            # Make prediction
             pred_scaled = model.predict(X_scaled)
+            
+            # Inverse transform the prediction
             pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
             results[model_name] = pred
+            
         except Exception as e:
             print(f"⚠️ Error in {model_name}: {e}")
             results[model_name] = None
     
     return results
+
 
 def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
@@ -122,10 +137,10 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
+        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"],
+        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"],
+        'Wk':   ["MEqp", "b", "cnom", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Cost': ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"]
     }
     
     # Calculate derived parameters
@@ -138,6 +153,7 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
         'b': float(b),
         'h': float(h),
         'd': float(d),
+        'cnom': float(cnom),
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
@@ -149,16 +165,31 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
         try:
             model_info = MODEL_PATHS[model_name]
             model = tf.keras.models.load_model(model_info['model'], compile=False)
-            X_scaler = joblib.load(model_info['scaler_X'])
+            
+            # Load scalers - X_scaler is a dictionary, y_scaler is a single scaler
+            X_scalers_dict = joblib.load(model_info['scaler_X'])
             y_scaler = joblib.load(model_info['scaler_y'])
 
+            # Prepare input data
             X_values = [feature_values[f] for f in MODEL_FEATURES[model_name]]
-            X = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
-
-            X_scaled = X_scaler.transform(np.log(X + 1e-8))
+            X_df = pd.DataFrame([X_values], columns=MODEL_FEATURES[model_name])
+            
+            # Apply log transform to each feature (as done in training)
+            X_log = np.log(X_df + 1e-8)
+            
+            # Scale each feature with its respective scaler
+            X_scaled = np.zeros_like(X_log)
+            for i, feature in enumerate(MODEL_FEATURES[model_name]):
+                scaler = X_scalers_dict[feature]  # Get the specific scaler for this feature
+                X_scaled[:, i] = scaler.transform(X_log[feature].values.reshape(-1, 1)).flatten()
+            
+            # Make prediction
             pred_scaled = model.predict(X_scaled)
+            
+            # Inverse transform the prediction
             pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
             results[model_name] = pred
+            
         except Exception as e:
             print(f"⚠️ Error in {model_name}: {e}")
             results[model_name] = None
@@ -320,6 +351,7 @@ class RectSectionTabSGU(QWidget):
         self.result_fields["num_rods_As2"].setText(str(ds.num_rods_As2) if ds.num_rods_As2 is not None else "N/A")
 
     def _on_predict(self) -> None:
+        ds = self.data_store
         try:
             n1_txt = self.result_fields["num_rods_As1"].text()
             n2_txt = self.result_fields["num_rods_As2"].text()
@@ -332,16 +364,16 @@ class RectSectionTabSGU(QWidget):
             
             b = float(self.result_fields["b"].text())
             h = float(self.result_fields["h"].text())
+            cnom = float(ds.cnom)
             fi = float(self.result_fields["fi"].text())
             fck_txt = self.result_fields["fck"].text()
             fck = float(fck_txt.split('/')[0][1:])
-            cnom = 40
 
             As1 = n1 * math.pi * (fi ** 2) / 4
             As2 = n2 * math.pi * (fi ** 2) / 4
 
             if As2 == 0:
-                results = predict_section_n1(MEd, b, h, fck, fi, cnom, As1, As2)
+                results = predict_section_n1(MEd, b, h, fck, fi, cnom, As1)
                 self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
                 self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
                 self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
@@ -358,6 +390,7 @@ class RectSectionTabSGU(QWidget):
                 self.result_fields[key].setText("Invalid input")
 
     def _on_optimize(self) -> None:
+        ds = self.data_store
         try:
             # Get both MEqp and MEd values
             MEqp_text = self.MEqp_input.text()
@@ -366,7 +399,7 @@ class RectSectionTabSGU(QWidget):
             
             b = float(self.result_fields["b"].text())
             h = float(self.result_fields["h"].text())
-            cnom = 30
+            cnom = float(ds.cnom)
             wk_max = 0.3
 
             # Find optimal solution based on MEqp (or MEd if MEqp not provided)

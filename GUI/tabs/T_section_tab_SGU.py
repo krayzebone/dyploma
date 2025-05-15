@@ -153,7 +153,7 @@ def predict_sectionn2(MEqp: float, beff: float, bw:float, h: float, hf: float, f
             pred = np.exp(y_scaler.inverse_transform(pred_scaled))[0][0]
             results[model_name] = pred
         except Exception as e:
-            print(f"⚠️ Error in {model_name}: {e}")
+            #print(f"⚠️ Error in {model_name}: {e}")
             results[model_name] = None
             print(f" results={results}")
     

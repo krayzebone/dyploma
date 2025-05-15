@@ -140,6 +140,7 @@ class CalculationData:
         self.fck = None
         self.As1 = None
         self.As2 = None
+        self.cnom = None
         self.num_rods_As1 = None  # Number of tension rods
         self.num_rods_As2 = None  # Number of compression rods
         self.act1 = None
@@ -148,13 +149,14 @@ class CalculationData:
 
 def find_optimal_scenario(
     inputs: dict[str, float], possible_fi: list[int], possible_fck: list[int]
-) -> dict:
-    """Search all (fck, fi, layout) combinations – return the cheapest fit."""
+) -> tuple[dict, str]:
+    """Search all (fck, fi, layout) combinations – return the cheapest fit and any messages."""
     MEd, b, h, cnom, fi_str = (
         inputs[k] for k in ("MEd", "b", "h", "cnom", "fi_str")
     )
     fyk = 500.0
     best = {"cost": float("inf")}
+    message = ""
 
     for fck in possible_fck:
         fcd = fck / 1.4
@@ -171,6 +173,22 @@ def find_optimal_scenario(
             n2, act2 = calculate_number_of_rods(As2, fi)
             fits1 = check_rods_fit(b, cnom, n1, fi, smax)
             fits2 = check_rods_fit(b, cnom, n2, fi, smax)
+
+            # Min & max area constraints
+            fctm = 0.3 * fck**(2/3)
+            a1 = cnom + fi / 2 + fi_str
+            d = h - a1
+            total_As = As1 + As2
+            A_s_min = max(0.26*(fctm/fyk)*b*d, 0.0013*b*d)
+            A_s_max = 0.04 * b * h
+            
+            # Check if reinforcement is within limits
+            if total_As < A_s_min:
+                message = "❌ Przekroczono dopuszczalne zbrojenie (zbyt małe)"
+                continue
+            elif total_As > A_s_max:
+                message = "❌ Przekroczono dopuszczalne zbrojenie (zbyt duże)"
+                continue
 
             # Accept solution if it fits and is cheaper
             if (fits1 and fits2) and cost < best["cost"]:
@@ -189,9 +207,10 @@ def find_optimal_scenario(
                     "fit_check2": fits2
                 }
     
-    # Return best found solution or empty dict if none found
-    return best if best["cost"] != float("inf") else {}
-
+    # Return best found solution and any messages
+    if best["cost"] == float("inf"):
+        return {}, message or "❌ Brak rozwiązań."
+    return best, message
 
 # ---------------------------------------------------------------------------
 #                           P Y Q T   G U I
@@ -410,14 +429,15 @@ class RectSectionTabSGN(QWidget):
         }
 
         try:
-            best = find_optimal_scenario(params, fi_list, fck_list)
+            best, message = find_optimal_scenario(params, fi_list, fck_list)
             self._best = best
+            if message:
+                self.status.setText(message)
         except Exception as exc:  # pragma: no cover
             self.status.setText(f"❌ optimiser error: {exc}")
             return
 
-        if not best or best["cost"] == float("inf"):
-            self.status.setText("❌ Brak rozwiązań.")
+        if not best:
             return
         
         # Store the values in the data store
@@ -426,19 +446,21 @@ class RectSectionTabSGN(QWidget):
         self.data_store.h = params["h"]
         self.data_store.fi = best["fi"]
         self.data_store.fck = best["fck"]
+        self.data_store.cnom = params["cnom"]
         self.data_store.As1 = best["As1"]
         self.data_store.As2 = best["As2"]
-        self.data_store.num_rods_As1 = best["num_rods_As1"]  # Store number of tension rods
-        self.data_store.num_rods_As2 = best["num_rods_As2"]  # Store number of compression rods
+        self.data_store.num_rods_As1 = best["num_rods_As1"]
+        self.data_store.num_rods_As2 = best["num_rods_As2"]
         self.data_store.act1 = best["num_rods_As1"] * math.pi * best["fi"]**2 /4
         self.data_store.act2 = best["num_rods_As2"] * math.pi * best["fi"]**2 /4
 
         # Store the parameters for the drawing
         self._last_params = params
-        self.btn_draw.setEnabled(True)  # Enable the draw button
+        self.btn_draw.setEnabled(True)
 
         self._show(best)
-        self.status.setText("✓ Optimalny przekrój znaleziony.")
+        if not message:
+            self.status.setText("✓ Optimalny przekrój znaleziony.")
 
     def _show(self, b: dict) -> None:
         self.result["Klasa betonu: "].setText(f"C{b['fck']}/{b['fck'] + 5}")

@@ -99,7 +99,7 @@ def sqrt_inverse(y, epsilon=1e-8):
 # ----- Main Processing Pipeline -----
 def main():
     # Load the Parquet dataset (adjust the path as needed)
-    df = pd.read_parquet(r"calculations\dataset\dataset_files\rect_section\dataset_rect_section.parquet")
+    df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet")
     
     # Define a dictionary for feature-specific transformations.
     # You can extend this dictionary to use any of the transformation functions above.
@@ -108,14 +108,13 @@ def main():
         'h': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'fi': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'cnom': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'fck': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'ro1': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
-        'ro2': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'MRd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
-        'MEd': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'Wk': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
         'Mcr': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
-        'wk': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
-        'cost': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
+        'Cost': {'transform': log_transform, 'inverse_transform': log_inverse, 'epsilon': 1e-8},
 
         # For example, if you want to use Yeo-Johnson on a feature 'x':
         # 'x': {'transform': yeo_johnson_transform, 'inverse_transform': yeo_johnson_inverse, 'lmbda': 1.0},
@@ -144,7 +143,7 @@ def main():
     df_transformed[transformed_features] = scaler.fit_transform(df_transformed[transformed_features])
     
     # Save the new dataset to a Parquet file
-    df_transformed.to_parquet("your_dataset_transformed.parquet")
+    df_transformed.to_parquet(r"your_dataset_transformed.parquet")
     print("Dataset transformed and saved to 'your_dataset_transformed.parquet'.")
 
 if __name__ == "__main__":

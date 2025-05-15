@@ -1,25 +1,23 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 
-# Specify the path to your .parquet file
-#parquet_file_path_preprocessed_data = r"C:\Users\marci\Desktop\Lagrange\dataset_files\preprocessed_files\preprocessed_results.parquet"
-parquet_file_path = r"neural_networks\T_section_plus_n1\dataset\dataset_T_n1.parquet"
+# Path to your .parquet file
+parquet_file_path = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test2.parquet"
 
 # Read the .parquet file into a DataFrame
-#df1 = pd.read_parquet(parquet_file_path_preprocessed_data)
 df = pd.read_parquet(parquet_file_path)
 
-# Filter rows where f_ck equals 25
-#filtered_df = df[df["wk"] > 0.3]
+# Select only the numeric columns (or replace this with your own list)
+num_cols = df.select_dtypes(include=[np.number]).columns
 
-# Count the number of rows that match the condition
-#row_count = len(filtered_df)
+# Find rows where any of those numeric columns is < 0
+neg_rows = df[(df[num_cols] < 0).any(axis=1)]
 
-#print(f"Number of rows with wk = 25: {row_count}")
+print(f"Total rows in dataset: {len(df)}")
+print(f"Rows with at least one feature < 0: {len(neg_rows)}\n")
 
-# Display the first few rows of the DataFrame
-print("First 5 rows of the DataFrame:")
-#print(df1.head())
-print(df.head())
-print(len(df))
+if not neg_rows.empty:
+    print("Here are the rows with negative values:")
+    print(neg_rows)
+else:
+    print("✔️ No negative values found in any numeric column.")

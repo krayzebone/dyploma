@@ -103,7 +103,7 @@ def predict_section_batchn1(input_data: pd.DataFrame, model_name: str):
         pred_scaled = model.predict(X_scaled)
         return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
     except Exception as e:
-        print(f"⚠️ Error in {model_name}: {e}")
+        #print(f"⚠️ Error in {model_name}: {e}")
         return np.full(len(input_data), np.nan)
 
 def predict_section_batchn2(input_data: pd.DataFrame, model_name: str):
@@ -142,7 +142,7 @@ def predict_section_batchn2(input_data: pd.DataFrame, model_name: str):
         pred_scaled = model.predict(X_scaled)
         return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
     except Exception as e:
-        print(f"⚠️ Error in {model_name}: {e}")
+        #print(f"⚠️ Error in {model_name}: {e}")
         return np.full(len(input_data), np.nan)
 
 
@@ -225,9 +225,6 @@ def process_combinations_batchn1(combinations_df: pd.DataFrame, wk_max: float, M
         lambda row: calc_costn1(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1']), 
         axis=1
     )
-
-    combinations_df.to_csv("combinations_results_n1.csv", index=False)
-    print("✅ Saved all combinations to 'combinations_results_n1.csv'")
     
     # Filter valid solutions
     valid_solutions = combinations_df[
@@ -256,9 +253,6 @@ def process_combinations_batchn2(combinations_df: pd.DataFrame, wk_max: float, M
         lambda row: calc_costn2(row['beff'], row['bw'], row['h'], row['hf'], row['fck'], row['As1'], row['As2']), 
         axis=1
     )
-
-    combinations_df.to_csv("combinations_results_n2.csv", index=False)
-    print("✅ Saved all combinations to 'combinations_results_n2.csv'")
     
     # Filter valid solutions
     valid_solutions = combinations_df[
@@ -284,7 +278,6 @@ def find_optimal_solutionn1(MEqp: float, MEd: float, beff: float, bw: float, h: 
     # Find optimal solution
     optimal_idx = valid_solutions['Cost'].idxmin()
     optimal_solution = valid_solutions.loc[optimal_idx].to_dict()
-    print(optimal_solution)
     
     return optimal_solution
 

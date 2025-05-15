@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 4000000 #20min
+num_iterations = 10000000 #20min
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -42,8 +42,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     #   1. Parametry wejściowe
     #####################################################################
     # Geometry of section
-    b = np.random.uniform(low=100, high=2000)
-    h = np.random.uniform(low=100, high=1000)
+    b = np.random.normal(loc=1000, scale=300)
+    h = np.random.normal(loc=300, scale=200)
     
     # Concrete choice
     f_ck = np.random.choice([16, 20, 25, 30, 35, 40, 45, 50])
@@ -51,7 +51,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     
     # Choose bar diameter from discrete set
     fi_gl = np.random.choice([8, 10, 12, 14, 16, 20, 25, 28, 32])
-    c_nom = np.random.uniform(low=30, high=60)
+    c_nom = np.random.uniform(low=10, high=60)
     
     # External moment
     M_Ed = np.random.uniform(low=10, high=2000) * 1e6
@@ -79,13 +79,11 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     mu_ro = 0.02
     sigma_ro = 0.01
     
-    # Create weights for normal distribution sampling
-    weights = np.exp(-0.5 * ((valid_ro - mu_ro) / sigma_ro)**2)
-    weights /= weights.sum()  # Normalize
+    ro_s1 = np.clip(np.random.normal(mu_ro, sigma_ro), 0.0001, 0.04)
+    ro_s2 = np.clip(np.random.normal(0.01, 0.005), 0.0001, 0.04)
 
-    # Sample reinforcement ratios
-    ro_s1 = np.random.choice(valid_ro, p=weights)
-    ro_s2 = np.random.choice(valid_ro, p=weights)
+    if ro_s2 < 0.005:
+        continue
 
     # Calculate exact integer bar counts
     area_one_bar = math.pi * (fi_gl**2) / 4.0
@@ -248,8 +246,8 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'h': h,
         'fi': fi_gl,
         'fck': f_ck,
-        'a1': a_1,
         'd': d,
+        'cnom': c_nom,
         'n1': n1,
         'n2': n2,
         'ro1': ro_s1,
