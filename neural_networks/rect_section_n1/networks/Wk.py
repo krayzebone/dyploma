@@ -193,7 +193,7 @@ TRAINING_CONFIG = {
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 223,
-    'epochs': 75,
+    'epochs': 200,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),

@@ -129,7 +129,7 @@ def sqrt_inverse(x):
 # 1. Data Configuration
 DATA_CONFIG = {
     'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet",
-    'features': ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"],
+    'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "Cost",
     'test_size': 0.3,
     'random_state': 42
@@ -138,7 +138,6 @@ DATA_CONFIG = {
 from sklearn.preprocessing import PowerTransformer
 
 df = pd.read_parquet(DATA_CONFIG['filepath'])
-df = df.iloc[:100000].copy()
 
 x_bx = df['b'].values + 1e-8
 bx_lambda = boxcox_normmax(x_bx)
@@ -169,7 +168,6 @@ TRANSFORMATION_CONFIG = {
         'b': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
         'h': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
         'd': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
-        'cnom': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
         'fi': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
         'fck': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
         'ro1': {'transform': log_transform, 'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-8},
@@ -218,7 +216,6 @@ OUTPUT_CONFIG = {
 def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
-    df = df.iloc[:100000].copy()
 
     # Apply feature-specific transformations and scaling
     X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)

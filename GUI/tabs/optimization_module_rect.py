@@ -46,7 +46,6 @@ def calc_cost_n2(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> f
     
     return total_cost
 
-
 def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
     MODEL_PATHS = {
         'Mcr': {
@@ -72,10 +71,10 @@ def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'Wk':   ["MEqp", "b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'Cost': ["b", "h", "d", "cnom", "fi", "fck", "ro1"]
+        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
+        'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
+        'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
     }
     
     try:
@@ -131,10 +130,10 @@ def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "cnom", "fck", "ro1", "ro2"],
-        'MRd':  ["b", "h", "d", "fi", "fck", "cnom", "ro1", "ro2"],
-        'Wk':   ["MEqp", "b", "h", "d", "fi", "cnom", "fck", "ro1", "ro2"],
-        'Cost': ["b", "h", "d", "fi", "fck", "cnom", "ro1", "ro2"]
+        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
     }
     
     try:
@@ -165,12 +164,10 @@ def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
         print(f"⚠️ Error in {model_name}: {e}")
         return np.full(len(input_data), np.nan)
 
-
 def calc_max_rods(b: float, fi: float, cnom: float) -> int:
     smin = max(20, fi)
     usable_width = b - 2 * cnom
     return math.floor((usable_width + smin) / (fi + smin))
-
 
 def generate_all_combinations_n1(MEd: float, b: float, h: float, cnom: float):
     possible_fck = [16, 20, 25, 30, 35, 40, 45, 50]
@@ -184,10 +181,10 @@ def generate_all_combinations_n1(MEd: float, b: float, h: float, cnom: float):
                 'MEqp': MEd,
                 'b': b,
                 'h': h,
-                'cnom': cnom,
                 'fck': fck,
                 'fi': fi,
                 'n1': n1,
+                'cnom': cnom  # Store cnom but won't be used in predictions
             })
     return pd.DataFrame(all_combinations)
 
@@ -203,17 +200,16 @@ def generate_all_combinations_n2(MEd: float, b: float, h: float, cnom: float):
                 'MEqp': MEd,
                 'b': b,
                 'h': h,
-                'cnom': cnom,
                 'fck': fck,
                 'fi': fi,
                 'n1': n1,
-                'n2': n2
+                'n2': n2,
+                'cnom': cnom  # Store cnom but won't be used in predictions
             })
     return pd.DataFrame(all_combinations)
 
-
 def process_combinations_batch_n1(combinations_df: pd.DataFrame, wk_max: float, MEd: float):
-    # Calculate derived parameters
+    # Calculate derived parameters (using cnom for d calculation)
     combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
     combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
     combinations_df['As2'] = 0
@@ -221,7 +217,7 @@ def process_combinations_batch_n1(combinations_df: pd.DataFrame, wk_max: float, 
     combinations_df['ro2'] = 0
     combinations_df['n2'] = 0
     
-    # Batch predictions
+    # Batch predictions (cnom is not in MODEL_FEATURES so it won't be used)
     print("Running batch predictions...")
     combinations_df['Mcr'] = predict_section_batch_n1(combinations_df, 'Mcr')
     combinations_df['MRd'] = predict_section_batch_n1(combinations_df, 'MRd')
@@ -242,14 +238,14 @@ def process_combinations_batch_n1(combinations_df: pd.DataFrame, wk_max: float, 
     return valid_solutions
 
 def process_combinations_batch_n2(combinations_df: pd.DataFrame, wk_max: float, MEd: float):
-    # Calculate derived parameters
+    # Calculate derived parameters (using cnom for d calculation)
     combinations_df['d'] = combinations_df['h'] - combinations_df['cnom'] - combinations_df['fi'] / 2
     combinations_df['As1'] = combinations_df['n1'] * (combinations_df['fi']**2) * math.pi / 4
     combinations_df['As2'] = combinations_df['n2'] * (combinations_df['fi']**2) * math.pi / 4
     combinations_df['ro1'] = combinations_df['As1'] / (combinations_df['b'] * combinations_df['h']).replace(np.inf, 0)
     combinations_df['ro2'] = combinations_df['As2'] / (combinations_df['b'] * combinations_df['h']).replace(np.inf, 0)
     
-    # Batch predictions
+    # Batch predictions (cnom is not in MODEL_FEATURES so it won't be used)
     print("Running batch predictions...")
     combinations_df['Mcr'] = predict_section_batch_n2(combinations_df, 'Mcr')
     combinations_df['MRd'] = predict_section_batch_n2(combinations_df, 'MRd')
@@ -261,7 +257,6 @@ def process_combinations_batch_n2(combinations_df: pd.DataFrame, wk_max: float, 
         axis=1
     )
     
-    
     # Filter valid solutions
     valid_solutions = combinations_df[
         (combinations_df['Wk'] < wk_max) & 
@@ -269,7 +264,6 @@ def process_combinations_batch_n2(combinations_df: pd.DataFrame, wk_max: float, 
     ].copy()
     
     return valid_solutions
-
 
 def find_optimal_solution_n1(MEqp: float, MEd: float, b: float, h: float, cnom: float, wk_max: float):
     # Generate all possible combinations
@@ -307,15 +301,13 @@ def find_optimal_solution_n2(MEqp: float, MEd: float, b: float, h: float, cnom: 
     
     return optimal_solution
 
-
-def find_best_solution(MEqp: float, MEd: float, b: float, h: float, cnom: float, wk_max: float):
+def find_best_solution(MEqp: float, MEd: float, b: float, h: float, wk_max: float, cnom: float):
     """Find the best solution between both models (with and without ro2)"""
     print("=== Evaluating solutions without ro2 ===")
     solution_n1 = find_optimal_solution_n1(MEqp, MEd, b, h, cnom, wk_max)
     
     print("\n=== Evaluating solutions with ro2 ===")
     solution_n2 = find_optimal_solution_n2(MEqp, MEd, b, h, cnom, wk_max)
-    
     
     if solution_n1 is None and solution_n2 is None:
         print("No valid solutions found in either model")

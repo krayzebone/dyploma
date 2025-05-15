@@ -129,7 +129,7 @@ def sqrt_inverse(x):
 # 1. Data Configuration
 DATA_CONFIG = {
     'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet",
-    'features': ["MEqp", "b", "h", "cnom", "d", "fi", "fck", "ro1", "ro2"],
+    'features': ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "Wk",
     'test_size': 0.3,
     'random_state': 42
@@ -169,7 +169,6 @@ TRANSFORMATION_CONFIG = {
         'b':        {'transform': log_transform,     'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-10},
         'h':        {'transform': log_transform,     'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-10},
         'd':        {'transform': log_transform,     'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-10},
-        'cnom':     {'transform': log_transform,     'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-10},
         'fi':       {'transform': log_transform,      'inverse_transform': log_inverse,     'scaler': StandardScaler(), 'epsilon': 1e-10},
         'fck':      {'transform': log_transform,      'inverse_transform': log_inverse,     'scaler': StandardScaler(), 'epsilon': 1e-10},
         'ro1':      {'transform': log_transform,     'inverse_transform': log_inverse,      'scaler': StandardScaler(), 'epsilon': 1e-10},

@@ -54,10 +54,10 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'Wk':   ["MEqp", "b", "h", "d", "cnom", "fi", "fck", "ro1"],
-        'Cost': ["b", "h", "d", "fi", "cnom", "fck", "ro1"]
+        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
+        'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
+        'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
     }
     
     # Calculate derived parameters
@@ -69,7 +69,6 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
         'b': float(b),
         'h': float(h),
         'd': float(d),
-        'cnom': float(cnom),
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
@@ -137,10 +136,10 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"],
-        'MRd':  ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"],
-        'Wk':   ["MEqp", "b", "cnom", "h", "d", "fi", "fck", "ro1", "ro2"],
-        'Cost': ["b", "h", "d", "cnom", "fi", "fck", "ro1", "ro2"]
+        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
     }
     
     # Calculate derived parameters
@@ -153,7 +152,6 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
         'b': float(b),
         'h': float(h),
         'd': float(d),
-        'cnom': float(cnom),
         'fi': float(fi),
         'fck': float(fck),
         'ro1': float(ro1),
@@ -403,7 +401,7 @@ class RectSectionTabSGU(QWidget):
             wk_max = 0.3
 
             # Find optimal solution based on MEqp (or MEd if MEqp not provided)
-            optimal = find_best_solution(MEqp, MEd, b, h, cnom, wk_max)
+            optimal = find_best_solution(MEqp, MEd, b, h, wk_max, cnom)
             
             if not optimal:
                 for field in self.opt_result_fields.values():
