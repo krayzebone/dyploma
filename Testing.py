@@ -4,14 +4,14 @@ from typing import Tuple
 from PIL import Image, ImageOps
 
 # ——— parametry docelowe ———
-TARGET_SIZE: Tuple[int, int] = (236, 297)    # pix (szer., wys.)
+TARGET_SIZE: Tuple[int, int] = (492, 633)    # pix (szer., wys.)
 TARGET_DPI:  Tuple[int, int] = (300, 300)
 MAX_FILE_SIZE = 2 * 1024 * 1024               # 2 MB
 ALLOWED_FORMATS = {"jpg", "jpeg", "png", "bmp", "gif"}
 
 # ——— ścieżki wej./wyj. ———
 IN_PATH  = Path(r"C:\Users\marci\Desktop\download.jpg")
-OUT_PATH = Path(r"C:\Users\marci\Desktop\download_id.jpg")
+OUT_PATH = Path(r"C:\Users\marci\Desktop\download_id1.jpg")
 
 
 def central_crop(img: Image.Image, ratio: float) -> Image.Image:
