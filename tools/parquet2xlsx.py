@@ -18,7 +18,7 @@ def convert_parquet_to_xlsx(input_parquet, output_xlsx, n_samples=10000):
 
 # Example usage:
 if __name__ == "__main__":
-    input_file = r"dataset_T_n1.parquet"  # Change to your input file
+    input_file = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet"  # Change to your input file
     output_file = "output_data.csv"   # Change to your desired output file
     
     convert_parquet_to_xlsx(input_file, output_file)

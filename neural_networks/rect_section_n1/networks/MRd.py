@@ -130,7 +130,7 @@ def sqrt_inverse(x):
 DATA_CONFIG = {
     'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1"],
-    'target': "MRd",
+    'target': "Wk",
     'test_size': 0.3,
     'random_state': 42
 }

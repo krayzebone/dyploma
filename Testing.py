@@ -39,7 +39,7 @@ def save_under_size(img: Image.Image, out_path: Path) -> None:
     if fmt in {"jpg", "jpeg"}:
         for q in range(95, 10, -5):
             tmp = out_path.with_suffix(".tmp")
-            img.save(tmp, format="jpg", quality=q,
+            img.save(tmp, format="JPEG", quality=q,
                      optimize=True, progressive=True, **params)
             if tmp.stat().st_size <= MAX_FILE_SIZE:
                 tmp.rename(out_path)

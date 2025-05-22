@@ -15,7 +15,7 @@ np.random.seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_40k.parquet")
 features = ["b", "h", "d", "fi", "fck", "ro1"]
 target = ["MRd"]
 
@@ -109,7 +109,7 @@ def objective(trial):
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=200,
+        epochs=100,
         batch_size=batch_size,
         callbacks=[early_stop, reduce_lr, pruning],
         verbose=0
