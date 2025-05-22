@@ -14,20 +14,26 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet")
 
-features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
-target = "MRd"
+#[I 2025-05-16 07:02:43,799] Trial 103 finished with value: 0.0004968613502569497 and parameters: {'n_layers': 2, 'n_units_l0': 437, 'dropout_l0': 0.1306765604449219, 'n_units_l1': 493, 'dropout_l1': 0.4046861069497326, 'lr': 0.00010639103147276659, 'batch_size': 68}. Best is trial 103 with value: 0.0004968613502569497.
+
+features = ["b", "h","d", "fi", "fck", "ro1", "ro2"]
+target = ["MRd"]
 
 X = df[features].values   # shape: (n_samples, 8)
 y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
 
-# Standardize the features and targets
+# Apply log transformation to features and target
+X_log = np.log1p(X)  # Using log1p to handle zero values safely
+y_log = np.log1p(y)
+
+# Standardize the log-transformed features and targets
 scaler_X = StandardScaler()
 scaler_y = StandardScaler()
 
-X_scaled = scaler_X.fit_transform(X)
-y_scaled = scaler_y.fit_transform(y)
+X_scaled = scaler_X.fit_transform(X_log)
+y_scaled = scaler_y.fit_transform(y_log)
 
 # Split the data
 X_train, X_val, y_train, y_val = train_test_split(
@@ -46,11 +52,11 @@ def create_model(trial):
     model.add(layers.Input(shape=(X_train.shape[1],)))
     
     # Number of hidden layers
-    n_layers = trial.suggest_int("n_layers", 1, 6)
+    n_layers = trial.suggest_int("n_layers", 1, 8)
     
     for i in range(n_layers):
-        n_units = trial.suggest_int(f"n_units_l{i}", 16, 400)
-        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
+        n_units = trial.suggest_int(f"n_units_l{i}", 16, 600)
+        dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.6)
 
         model.add(layers.Dense(n_units, activation=None))
         model.add(layers.Activation('relu'))
@@ -62,7 +68,7 @@ def create_model(trial):
     model.add(layers.Dense(1, activation='linear'))
     
     # Learning rate
-    lr = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
+    lr = trial.suggest_float("lr", 1e-7, 1e-1, log=True)
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss='mse',
@@ -79,14 +85,14 @@ def objective(trial):
     
     early_stop = keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=30,
         restore_best_weights=True
     )
     
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=100,
+        epochs=150,
         batch_size=batch_size,
         callbacks=[early_stop],
         verbose=0
@@ -99,7 +105,7 @@ def objective(trial):
 # Run the Optuna Study
 # ============================================
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=50)
+study.optimize(objective, n_trials=200)
 
 # Print best trial results
 print("Best trial:")

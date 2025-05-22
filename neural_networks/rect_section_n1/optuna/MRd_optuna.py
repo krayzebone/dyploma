@@ -1,33 +1,36 @@
 import os
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN optimizations
-import optuna
 import pandas as pd
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import optuna
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers # type: ignore
+from tensorflow.keras import layers, regularizers
 
 tf.random.set_seed(38)
+np.random.seed(38)
 
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet")
+features = ["b", "h", "d", "fi", "fck", "ro1"]
+target = ["MRd"]
 
-features = ["b", "d", "h", "fi", "fck", "ro1"]
-target = "MRd"
+X = df[features].values
+y = df[target].values.reshape(-1, 1)
 
-X = df[features].values   # shape: (n_samples, 8)
-y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)
+# Log-transform and standardize
+X_log = np.log1p(X)
+y_log = np.log1p(y)
 
-# Standardize the features and targets
 scaler_X = StandardScaler()
 scaler_y = StandardScaler()
 
-X_scaled = scaler_X.fit_transform(X)
-y_scaled = scaler_y.fit_transform(y)
+X_scaled = scaler_X.fit_transform(X_log)
+y_scaled = scaler_y.fit_transform(y_log)
 
 # Split the data
 X_train, X_val, y_train, y_val = train_test_split(
@@ -38,73 +41,122 @@ X_train, X_val, y_train, y_val = train_test_split(
 # Model Building
 # ============================================
 def create_model(trial):
-    """
-    Build a neural network model for single output prediction.
-    Includes Batch Normalization after each Dense layer.
-    """
     model = keras.Sequential()
     model.add(layers.Input(shape=(X_train.shape[1],)))
     
-    # Number of hidden layers
     n_layers = trial.suggest_int("n_layers", 1, 6)
+    use_batchnorm = trial.suggest_categorical("use_batchnorm", [True, False])
+    weight_decay = trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True)
     
     for i in range(n_layers):
-        n_units = trial.suggest_int(f"n_units_l{i}", 16, 600)
+        n_units = trial.suggest_int(f"n_units_l{i}", 32, 512)
         dropout_rate = trial.suggest_float(f"dropout_l{i}", 0.0, 0.5)
-
-        model.add(layers.Dense(n_units, activation=None))
+        
+        model.add(layers.Dense(
+            n_units,
+            kernel_regularizer=regularizers.l2(weight_decay),
+            activation=None
+        ))
+        
+        if use_batchnorm:
+            model.add(layers.BatchNormalization())
+        
         model.add(layers.Activation('relu'))
         
         if dropout_rate > 0:
-            model.add(layers.Dropout(rate=dropout_rate))
+            model.add(layers.Dropout(dropout_rate))
     
-    # Final layer with 1 output
     model.add(layers.Dense(1, activation='linear'))
     
-    # Learning rate
-    lr = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=lr),
-        loss='mse',
-        metrics=['mse']    
-    )
+    lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
+    optimizer_name = trial.suggest_categorical("optimizer", ["adam"])
+    
+    if optimizer_name == "adam":
+        optimizer = keras.optimizers.Adam(learning_rate=lr)
+    elif optimizer_name == "rmsprop":
+        optimizer = keras.optimizers.RMSprop(learning_rate=lr)
+    else:
+        optimizer = keras.optimizers.SGD(learning_rate=lr, momentum=0.9)
+    
+    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
     return model
 
 # ============================================
-# Objective Function for Optuna
+# Objective Function (with Excel Logging)
 # ============================================
 def objective(trial):
     model = create_model(trial)
-    batch_size = trial.suggest_int("batch_size", 16, 256)
+    batch_size = trial.suggest_int("batch_size", 32, 256, step=32)
     
     early_stop = keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=20,
         restore_best_weights=True
+    )
+    
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.5,
+        patience=10,
+        min_lr=1e-7
+    )
+    
+    pruning = optuna.integration.TFKerasPruningCallback(
+        trial,
+        monitor='val_loss'
     )
     
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=100,
+        epochs=200,
         batch_size=batch_size,
-        callbacks=[early_stop],
+        callbacks=[early_stop, reduce_lr, pruning],
         verbose=0
     )
     
     val_loss, _ = model.evaluate(X_val, y_val, verbose=0)
+    
+    # Log trial results to DataFrame
+    trial_results = {
+        "trial_number": trial.number,
+        "val_loss": val_loss,
+        "best_epoch": len(history.history['val_loss']) - early_stop.patience,
+        **trial.params  # Unpacks all hyperparameters
+    }
+    
+    # Append to Excel file (creates if not exists)
+    results_df = pd.DataFrame([trial_results])
+    if not os.path.exists("optuna_results_adam.xlsx"):
+        results_df.to_excel("optuna_results_adam.xlsx", index=False)
+    else:
+        existing_df = pd.read_excel("optuna_results_adam.xlsx")
+        updated_df = pd.concat([existing_df, results_df], ignore_index=True)
+        updated_df.to_excel("optuna_results_adam.xlsx", index=False)
+    
     return val_loss
 
 # ============================================
-# Run the Optuna Study
+# Run Optuna Study
 # ============================================
-study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=50)
+study = optuna.create_study(
+    direction="minimize",
+    sampler=optuna.samplers.TPESampler(seed=38),
+    pruner=optuna.pruners.MedianPruner()
+)
 
-# Print best trial results
-print("Best trial:")
+study.optimize(objective, n_trials=200, timeout=3600)
+
+# ============================================
+# Final Results & Best Trial
+# ============================================
+print("\nBest trial:")
 trial = study.best_trial
-print("  MSE: ", trial.value)
+print(f"  MSE: {trial.value:.4f}")
 print("  Best hyperparameters:")
 for key, value in trial.params.items():
     print(f"    {key}: {value}")
+
+# Plot optimization history
+optuna.visualization.plot_optimization_history(study).show()
+optuna.visualization.plot_param_importances(study).show()

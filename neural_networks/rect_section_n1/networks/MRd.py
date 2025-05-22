@@ -203,7 +203,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"neural_networks\rect_section_n1\models\MRd_model",
+    'save_path': r"neural_networks\rect_section_n1\models\MRd_model1",
     'visualization': {
         'max_samples': 100000,
         'histogram_bins': 100

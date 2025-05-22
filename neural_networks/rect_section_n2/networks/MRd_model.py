@@ -128,7 +128,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet",
+    'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2test.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
@@ -198,7 +198,7 @@ TRAINING_CONFIG = {
     'batch_size': 183,
     'epochs': 200,
     'callbacks': [
-        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
     ]
 }
