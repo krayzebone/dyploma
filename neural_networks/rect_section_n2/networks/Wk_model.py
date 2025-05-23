@@ -199,7 +199,7 @@ TRAINING_CONFIG = {
     'batch_size': 223,
     'epochs': 200,
     'callbacks': [
-        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
     ]
 }

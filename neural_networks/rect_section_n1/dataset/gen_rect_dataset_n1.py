@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 1200000
+num_iterations = 20000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float) -> float:
@@ -243,7 +243,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet", index=False)
+    df.to_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

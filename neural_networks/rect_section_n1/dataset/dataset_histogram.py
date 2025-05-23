@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the data from the Parquet file
-file_path = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test2.parquet"
+file_path = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet"
 df = pd.read_parquet(file_path)
 
 # Specify the features to plot

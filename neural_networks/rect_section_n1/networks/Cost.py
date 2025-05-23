@@ -196,7 +196,7 @@ TRAINING_CONFIG = {
     'batch_size': 51,
     'epochs': 200,
     'callbacks': [
-        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
     ]
 }
@@ -216,7 +216,7 @@ OUTPUT_CONFIG = {
 def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
-    df = df.iloc[:100000].copy()
+    df = df.iloc[:15000].copy()
 
     # Apply feature-specific transformations and scaling
     X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)

@@ -128,7 +128,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet",
+    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet",
     'features': ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
     'target': "Wk",
     'test_size': 0.3,
@@ -215,7 +215,7 @@ OUTPUT_CONFIG = {
 def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
-    df = df.iloc[:100000].copy()
+    df = df.iloc[:75_000].copy()
 
     # Apply feature-specific transformations and scaling
     X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)

@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, regularizers
+from tensorflow.keras import layers
 
 tf.random.set_seed(38)
 np.random.seed(38)
@@ -15,16 +15,16 @@ np.random.seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_40k.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet")
 features = ["b", "h", "d", "fi", "fck", "ro1"]
-target = ["MRd"]
+target = ["Wk"]
 
 X = df[features].values
 y = df[target].values.reshape(-1, 1)
 
 # Log-transform and standardize
-X_log = np.log1p(X)
-y_log = np.log1p(y)
+X_log = np.log(X)
+y_log = np.log(y)
 
 scaler_X = StandardScaler()
 scaler_y = StandardScaler()
@@ -46,7 +46,6 @@ def create_model(trial):
     
     n_layers = trial.suggest_int("n_layers", 1, 6)
     use_batchnorm = trial.suggest_categorical("use_batchnorm", [True, False])
-    weight_decay = trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True)
     
     for i in range(n_layers):
         n_units = trial.suggest_int(f"n_units_l{i}", 32, 512)
@@ -54,7 +53,6 @@ def create_model(trial):
         
         model.add(layers.Dense(
             n_units,
-            kernel_regularizer=regularizers.l2(weight_decay),
             activation=None
         ))
         
@@ -68,7 +66,7 @@ def create_model(trial):
     
     model.add(layers.Dense(1, activation='linear'))
     
-    lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
+    lr = trial.suggest_float("lr", 1e-6, 1e-2, log=True)
     optimizer_name = trial.suggest_categorical("optimizer", ["adam"])
     
     if optimizer_name == "adam":
@@ -86,7 +84,7 @@ def create_model(trial):
 # ============================================
 def objective(trial):
     model = create_model(trial)
-    batch_size = trial.suggest_int("batch_size", 32, 256, step=32)
+    batch_size = trial.suggest_int("batch_size", 32, 256, step=8)
     
     early_stop = keras.callbacks.EarlyStopping(
         monitor='val_loss',
@@ -109,7 +107,7 @@ def objective(trial):
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=100,
+        epochs=150,
         batch_size=batch_size,
         callbacks=[early_stop, reduce_lr, pruning],
         verbose=0

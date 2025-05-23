@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 10000000 #20min
+num_iterations = 15200000 #20min
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -219,7 +219,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     if n1 < n2:
         continue
 
-    if w_k > 5:
+    if w_k > 2:
         continue
 
     # Min & max area constraints
@@ -247,13 +247,9 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'fi': fi_gl,
         'fck': f_ck,
         'd': d,
-        'cnom': c_nom,
-        'n1': n1,
-        'n2': n2,
         'ro1': ro_s1,
         'ro2': ro_s2,
         'Wk': w_k,
-        'Mcr': M_cr / 1e6,
         'Cost': cost,
     }
     data_list.append(data_entry)

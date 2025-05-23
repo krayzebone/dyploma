@@ -128,9 +128,9 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet",
+    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1"],
-    'target': "Wk",
+    'target': "MRd",
     'test_size': 0.3,
     'random_state': 42
 }
@@ -138,7 +138,7 @@ DATA_CONFIG = {
 from sklearn.preprocessing import PowerTransformer
 
 df = pd.read_parquet(DATA_CONFIG['filepath'])
-df = df.iloc[:100000].copy()
+df = df.iloc[:1000].copy()
 
 x_bx = df['b'].values + 1e-8
 bx_lambda = boxcox_normmax(x_bx)
@@ -417,7 +417,7 @@ def main():
 
     # 3) Display them
     print(f"Found {len(large_error_df)} rows with |actual – predicted| > 50:\n")
-    print(large_error_df)
+   
 
     # 5) Visualizations
     plot_histograms(full_pred, actual_all)

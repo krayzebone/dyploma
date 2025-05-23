@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Path to your .parquet file
-parquet_file_path = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet"
+parquet_file_path = r"neural_networks\rect_section_n2\dataset\dataset_rect_n2test.parquet"
 
 # Read the .parquet file into a DataFrame
 df = pd.read_parquet(parquet_file_path)
