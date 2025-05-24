@@ -13,12 +13,12 @@ def convert_parquet_to_xlsx(input_parquet, output_xlsx, n_samples=10000):
     df = pd.read_parquet(input_parquet).head(n_samples)
     
     # Save to Excel
-    df.to_csv(output_xlsx, index=False)
+    df.to_excel(output_xlsx, index=False)
     print(f"Successfully saved first {len(df)} samples to {output_xlsx}")
 
 # Example usage:
 if __name__ == "__main__":
-    input_file = r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet"  # Change to your input file
-    output_file = "output_data.csv"   # Change to your desired output file
+    input_file = r"neural_networks\rect_section_n2\dataset\dataset_testnoas2.parquet"  # Change to your input file
+    output_file = "output_data.xlsx"   # Change to your desired output file
     
     convert_parquet_to_xlsx(input_file, output_file)

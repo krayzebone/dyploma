@@ -128,7 +128,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet",
+    'filepath': r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet",
     'features': ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
     'target': "Wk",
     'test_size': 0.3,
@@ -183,20 +183,21 @@ TRANSFORMATION_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 436, 'activation': 'relu', 'dropout': 0.039595806511038834},
+        {'units': 405, 'activation': 'relu', 'dropout': 0.03861743200358036},
+        {'units': 503, 'activation': 'relu', 'dropout': 0.04577678109646839},
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate=9.692118072652328e-05),
+    'optimizer': Adam(learning_rate=0.0003433757087765873),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
     'batch_size': 223,
-    'epochs': 200,
+    'epochs': 300,
     'callbacks': [
-        EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True),
-        ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),
+        EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
+        ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-8),
     ]
 }
 
@@ -215,7 +216,7 @@ OUTPUT_CONFIG = {
 def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
-    df = df.iloc[:75_000].copy()
+    df = df.iloc[:100000].copy()
 
     # Apply feature-specific transformations and scaling
     X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)

@@ -128,7 +128,7 @@ def sqrt_inverse(x):
 
 # 1. Data Configuration
 DATA_CONFIG = {
-    'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n2test.parquet",
+    'filepath': r"neural_networks\rect_section_n2\dataset\dataset_rect_n22.parquet",
     'features': ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     'target': "MRd",
     'test_size': 0.3,
@@ -185,18 +185,18 @@ TRANSFORMATION_CONFIG = {
 
 MODEL_CONFIG = {
     'hidden_layers': [
-        {'units': 456, 'activation': 'relu', 'dropout': 0.0019310079769050935},
-        {'units': 468, 'activation': 'relu', 'dropout': 0.05066347110743058}
+        {'units': 310, 'activation': 'relu', 'dropout': 0.075897904721237},
+   
     ],
     'output_activation': 'linear'
 }
 
 TRAINING_CONFIG = {
-    'optimizer': Adam(learning_rate=5.222394546658954e-05),
+    'optimizer': Adam(learning_rate=0.00137495600819144),
     'loss': 'mse',
     'metrics': ['mse', 'mae'],
-    'batch_size': 183,
-    'epochs': 200,
+    'batch_size': 88,
+    'epochs': 300,
     'callbacks': [
         EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True),
         ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, min_lr=1e-8),

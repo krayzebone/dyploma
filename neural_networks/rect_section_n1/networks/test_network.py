@@ -13,15 +13,10 @@ import matplotlib.pyplot as plt
 # Model artefact locations and input feature definitions
 # --------------------------------------------------------------------------------------
 MODEL_PATHS = {
-    "Mcr": {
-        "model": r"neural_networks/rect_section_n1/models/Mcr_model/model.keras",
-        "scaler_X": r"neural_networks/rect_section_n1/models/Mcr_model/scaler_X.pkl",
-        "scaler_y": r"neural_networks/rect_section_n1/models/Mcr_model/scaler_y.pkl",
-    },
     "MRd": {
-        "model": r"neural_networks/rect_section_n1/models/MRd_model/model.keras",
-        "scaler_X": r"neural_networks/rect_section_n1/models/MRd_model/scaler_X.pkl",
-        "scaler_y": r"neural_networks/rect_section_n1/models/MRd_model/scaler_y.pkl",
+        "model": r"neural_networks\rect_section_n1\network_one\models\MRd_model\model.keras",
+        "scaler_X": r"neural_networks\rect_section_n1\network_one\models\MRd_model\scaler_X.pkl",
+        "scaler_y": r"neural_networks\rect_section_n1\network_one\models\MRd_model\scaler_y.pkl",
     },
     "Wk": {
         "model": r"neural_networks/rect_section_n1/models/Wk_model/model.keras",
@@ -36,7 +31,6 @@ MODEL_PATHS = {
 }
 
 MODEL_FEATURES = {
-    "Mcr": ["b", "h", "d", "fi", "fck", "ro1"],
     "MRd": ["b", "h", "d", "fi", "fck", "ro1"],
     "Wk": ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
     "Cost": ["b", "h", "d", "fi", "fck", "ro1"],

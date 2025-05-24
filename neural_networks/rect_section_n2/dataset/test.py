@@ -90,7 +90,7 @@ def create_objective(target_name, X_train, X_val, y_train, y_val, results_file):
         history = model.fit(
             X_train, y_train,
             validation_data=(X_val, y_val),
-            epochs=200,
+            epochs=10,
             batch_size=batch_size,
             callbacks=[early_stop, reduce_lr, pruning],
             verbose=0

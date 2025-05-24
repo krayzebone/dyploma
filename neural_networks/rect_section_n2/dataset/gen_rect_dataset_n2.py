@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 15200000 #20min
+num_iterations = 400000 #20min
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> float:
@@ -80,10 +80,11 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     sigma_ro = 0.01
     
     ro_s1 = np.clip(np.random.normal(mu_ro, sigma_ro), 0.0001, 0.04)
-    ro_s2 = np.clip(np.random.normal(0.01, 0.005), 0.0001, 0.04)
+    ro_s2 = np.clip(np.random.normal(0.02, 0.01), 0.0001, 0.04)
 
-    if ro_s2 < 0.005:
+    if ro_s2 < 0.001:
         continue
+
 
     # Calculate exact integer bar counts
     area_one_bar = math.pi * (fi_gl**2) / 4.0
@@ -115,16 +116,20 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
     ksi_eff_lim = 0.8 * 0.0035 / (0.0035 + f_yd / E_s)
 
     if ksi_eff <= ksi_eff_lim:
-        continue
+        M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff) + A_s2 * f_yd * (d - a_1))
 
-    x_eff = ksi_eff_lim * d
+    elif ksi_eff > ksi_eff_lim:
+        x_eff = ksi_eff_lim * d
+        M_Rd = A_s1 * f_yd * (d - 0.5 * x_eff)
 
     if x_eff < 2 * a_1:
         M_Rd = (A_s1 * f_yd * (d - a_1))
         
     else:
-        M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff) + A_s2 * f_yd * (d - a_1))
+        continue
+        
 
+    
     
 
     #####################################################################
@@ -257,7 +262,7 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
 # Save results
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_parquet(r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet", index=False)
+    df.to_parquet(r"neural_networks\rect_section_n2\dataset\dataset_rect.parquet", index=False)
     print(f"\nSaved {len(data_list)} valid results to 'dataset.parquet'")
 else:
     print("\nNo valid cases found.")

@@ -61,11 +61,6 @@ def predict_section_batch(input_data: pd.DataFrame, model_name: str):
 
 def predict_section(MEqp: float, beff: float, bw:float, h: float, hf: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"nn_models\Tsectionplus\Mcr_model\model.keras",
-            'scaler_X': r"nn_models\Tsectionplus\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"nn_models\Tsectionplus\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"nn_models\Tsectionplus\MRd_model\model.keras",
             'scaler_X': r"nn_models\Tsectionplus\MRd_model\scaler_X.pkl",

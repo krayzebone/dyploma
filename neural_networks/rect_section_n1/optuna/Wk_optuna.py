@@ -4,7 +4,7 @@ import optuna
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers # type: ignore
@@ -14,7 +14,7 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet")
 
 features = ["MEqp", "b", "h", "cnom", "d", "fi", "fck", "ro1"]
 target = ["Wk"]

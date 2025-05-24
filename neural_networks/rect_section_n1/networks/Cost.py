@@ -216,7 +216,7 @@ OUTPUT_CONFIG = {
 def load_and_preprocess_data():
     """Load data with centralized configuration."""
     df = pd.read_parquet(DATA_CONFIG['filepath'])
-    df = df.iloc[:15000].copy()
+    df = df.iloc[:75000].copy()
 
     # Apply feature-specific transformations and scaling
     X_transformed = np.zeros_like(df[DATA_CONFIG['features']].values)

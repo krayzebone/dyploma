@@ -3,7 +3,7 @@ import tqdm
 import pandas as pd
 import numpy as np
 
-num_iterations = 20000
+num_iterations = 400000
 data_list = []
 
 def calculate_section_cost(b: float, h: float, f_ck: float, A_s1: float) -> float:
@@ -235,7 +235,6 @@ for _ in tqdm.tqdm(range(num_iterations), desc="Running simulations"):
         'cnom': c_nom,
         'ro1': ro_s1,
         'Wk': w_k,
-        'Mcr': M_cr / 1e6,
         'Cost': cost,
     }
     data_list.append(data_entry)
