@@ -108,7 +108,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"neural_networks\rect_section_n1\network_one\models\Cost_model",
+    'save_path': r"neural_networks\rect_section_n2\network_two\models\Cost_model",
     'visualization': {'max_samples': 100_000, 'histogram_bins': 100},
     'save_transformers': True
 }

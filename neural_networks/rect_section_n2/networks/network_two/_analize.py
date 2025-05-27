@@ -19,14 +19,14 @@ from pathlib import Path
 def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str) -> np.ndarray:
     """Return model predictions on *real scale* for one of the three targets."""
     model_paths = {
-        "MRd":  Path(r"neural_networks/rect_section_n2/models/MRd_model"),
-        "Wk":   Path(r"neural_networks/rect_section_n2/models/Wk_model"),
-        "Cost": Path(r"neural_networks/rect_section_n2/models/Cost_model"),
+        "MRd":  Path(r"neural_networks\rect_section_n2\models\MRd_model"),
+        "Wk":   Path(r"neural_networks\rect_section_n2\models\Wk_model"),
+        "Cost": Path(r"neural_networks\rect_section_n2\models\Cost_model"),
     }
     model_features = {
-        "MRd":  ["b", "h", "d", "fi", "fck", "ro1"],
-        "Wk":   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
-        "Cost": ["b", "h", "d", "fi", "fck", "ro1"],
+        "MRd":  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        "Wk":   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        "Cost": ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
     }
 
     try:
@@ -107,4 +107,4 @@ def evaluate_models(dataset_path: str | Path) -> None:
 # │ 3.  Run it!                                                              │
 # ╰──────────────────────────────────────────────────────────────────────────╯
 if __name__ == "__main__":
-    evaluate_models(r"neural_networks/rect_section_n1/dataset/dataset_rect_n1_test.parquet")
+    evaluate_models(r"neural_networks\rect_section_n2\dataset\dataset_rect.parquet")

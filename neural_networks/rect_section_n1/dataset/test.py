@@ -17,12 +17,12 @@ np.random.seed(38)
 # ============================================
 df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_40k.parquet")
 features = ["MEqp", "b", "h", "d", "fi", "fck", "ro1"]
-targets = ["Wk"]  # All target variables
+targets = ["MRd", "Wk", "Cost"]  # All target variables
 
 # ============================================
 # Model Building
 # ============================================
-def create_model(trial, input_shape):
+def create_model(trial, input_shape, output_shape):
     model = keras.Sequential()
     model.add(layers.Input(shape=(input_shape,)))
     
@@ -46,7 +46,7 @@ def create_model(trial, input_shape):
         if dropout_rate > 0:
             model.add(layers.Dropout(dropout_rate))
     
-    model.add(layers.Dense(1, activation='linear'))
+    model.add(layers.Dense(output_shape, activation='linear'))
     
     lr = trial.suggest_float("lr", 1e-6, 1e-2, log=True)
     optimizer_name = trial.suggest_categorical("optimizer", ["adam"])
@@ -62,11 +62,11 @@ def create_model(trial, input_shape):
     return model
 
 # ============================================
-# Objective Function with Target-specific Processing
+# Objective Function for Multi-Output Model
 # ============================================
-def create_objective(target_name, X_train, X_val, y_train, y_val, results_file):
+def create_objective(X_train, X_val, y_train, y_val, results_file):
     def objective(trial):
-        model = create_model(trial, X_train.shape[1])
+        model = create_model(trial, X_train.shape[1], y_train.shape[1])
         batch_size = trial.suggest_int("batch_size", 32, 256, step=8)
         
         early_stop = keras.callbacks.EarlyStopping(
@@ -103,7 +103,6 @@ def create_objective(target_name, X_train, X_val, y_train, y_val, results_file):
             "trial_number": trial.number,
             "val_loss": val_loss,
             "best_epoch": len(history.history['val_loss']) - early_stop.patience,
-            "target_variable": target_name,
             **trial.params  # Unpacks all hyperparameters
         }
         
@@ -120,14 +119,14 @@ def create_objective(target_name, X_train, X_val, y_train, y_val, results_file):
     return objective
 
 # ============================================
-# Run Studies for Each Target
+# Run Study for Multi-Output Model
 # ============================================
-def run_study_for_target(target_name, n_trials=120):
-    print(f"\nStarting study for target: {target_name}")
+def run_study(n_trials=120):
+    print("\nStarting study for multi-output model (MRd, Wk, Cost)")
     
-    # Prepare data for this specific target
+    # Prepare data
     X = df[features].values
-    y = df[[target_name]].values.reshape(-1, 1)
+    y = df[targets].values
     
     # Log-transform and standardize
     X_log = np.log(X+1e-9)
@@ -152,17 +151,17 @@ def run_study_for_target(target_name, n_trials=120):
     )
     
     # Create results filename
-    results_file = f"optuna_results_{target_name.lower()}.xlsx"
+    results_file = "optuna_results_multi_output.xlsx"
     
     # Optimize
     study.optimize(
-        create_objective(target_name, X_train, X_val, y_train, y_val, results_file),
+        create_objective(X_train, X_val, y_train, y_val, results_file),
         n_trials=n_trials,
         timeout=3600
     )
     
     # Print best results
-    print(f"\nBest trial for {target_name}:")
+    print("\nBest trial for multi-output model:")
     trial = study.best_trial
     print(f"  MSE: {trial.value:.4f}")
     print("  Best hyperparameters:")
@@ -171,10 +170,10 @@ def run_study_for_target(target_name, n_trials=120):
     
     # Save visualizations
     fig_history = optuna.visualization.plot_optimization_history(study)
-    fig_history.write_image(f"optimization_history_{target_name.lower()}.png")
+    fig_history.write_image("optimization_history_multi_output.png")
     
     fig_importance = optuna.visualization.plot_param_importances(study)
-    fig_importance.write_image(f"param_importances_{target_name.lower()}.png")
+    fig_importance.write_image("param_importances_multi_output.png")
     
     return study
 
@@ -182,9 +181,7 @@ def run_study_for_target(target_name, n_trials=120):
 # Main Execution
 # ============================================
 if __name__ == "__main__":
-    # Run studies for each target
-    studies = {}
-    for target in targets:
-        studies[target] = run_study_for_target(target, n_trials=100)
+    # Run study for multi-output model
+    study = run_study(n_trials=100)
     
-    print("\nAll studies completed!")
+    print("\nStudy completed!")

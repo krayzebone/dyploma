@@ -14,10 +14,10 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"datasets\dataset_rect_section.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet")
 
 features = ["b", "d", "h", "fi", "fck", "ro1", "ro2"]
-target = "Mcr"
+target = ["MRd", "Wk", "Cost"]
 
 X = df[features].values   # shape: (n_samples, 8)
 y = df[target].values.reshape(-1, 1)     # shape: (n_samples, 1)

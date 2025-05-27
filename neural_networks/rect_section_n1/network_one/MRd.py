@@ -111,7 +111,7 @@ TRAINING_CONFIG = {
 }
 
 OUTPUT_CONFIG = {
-    'save_path': r"neural_networks\rect_section_n1\network_one\models\MRd_model",
+    'save_path': r"neural_networks\rect_section_n1\network_one\models\MRd_modelk_fold",
     'visualization': {'max_samples': 100_000, 'histogram_bins': 100},
     'save_transformers': True
 }

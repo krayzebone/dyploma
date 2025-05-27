@@ -19,9 +19,9 @@ from pathlib import Path
 def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str) -> np.ndarray:
     """Return model predictions on *real scale* for one of the three targets."""
     model_paths = {
-        "MRd":  Path(r"neural_networks\rect_section_n1\network_one\models\MRd_model"),
-        "Wk":   Path(r"neural_networks\rect_section_n1\network_one\models\Wk_model"),
-        "Cost": Path(r"neural_networks\rect_section_n1\network_one\models\Cost_model"),
+        "MRd":  Path(r"neural_networks\rect_section_n1\models\MRd_model"),
+        "Wk":   Path(r"neural_networks\rect_section_n1\models\Wk_model"),
+        "Cost": Path(r"neural_networks\rect_section_n1\models\Cost_model"),
     }
     model_features = {
         "MRd":  ["b", "h", "d", "fi", "fck", "ro1"],
@@ -107,4 +107,4 @@ def evaluate_models(dataset_path: str | Path) -> None:
 # │ 3.  Run it!                                                              │
 # ╰──────────────────────────────────────────────────────────────────────────╯
 if __name__ == "__main__":
-    evaluate_models(r"neural_networks/rect_section_n1/dataset/dataset_rect_n1_test.parquet")
+    evaluate_models(r"neural_networks\rect_section_n1\dataset\dataset_rect_n1_test5_100k.parquet")

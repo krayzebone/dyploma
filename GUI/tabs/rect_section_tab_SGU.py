@@ -31,11 +31,6 @@ from .optimization_module_rect import find_best_solution
 
 def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"neural_networks\rect_section_n1\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"neural_networks\rect_section_n1\models\MRd_model\model.keras",
             'scaler_X': r"neural_networks\rect_section_n1\models\MRd_model\scaler_X.pkl",
@@ -54,7 +49,6 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
         'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
         'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
         'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
@@ -75,7 +69,7 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
     
     results = {}
-    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+    for model_name in ['MRd', 'Wk', 'Cost']:
         try:
             model_info = MODEL_PATHS[model_name]
             model = tf.keras.models.load_model(model_info['model'], compile=False)
@@ -113,11 +107,6 @@ def predict_section_n1(MEqp: float, b: float, h: float, fck: float, fi: float, c
 
 def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, cnom: float, As1: float, As2: float):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"neural_networks\rect_section_n2\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\rect_section_n2\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\rect_section_n2\models\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"neural_networks\rect_section_n2\models\MRd_model\model.keras",
             'scaler_X': r"neural_networks\rect_section_n2\models\MRd_model\scaler_X.pkl",
@@ -136,7 +125,6 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
@@ -159,7 +147,7 @@ def predict_section_n2(MEqp: float, b: float, h: float, fck: float, fi: float, c
     }
     
     results = {}
-    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+    for model_name in ['MRd', 'Wk', 'Cost']:
         try:
             model_info = MODEL_PATHS[model_name]
             model = tf.keras.models.load_model(model_info['model'], compile=False)
@@ -275,7 +263,6 @@ class RectSectionTabSGU(QWidget):
         group_layout.addWidget(self.predict_btn)
 
         preds = [
-            ("Predicted Mcr [kNm]", "pred_Mcr"),
             ("Predicted MRd [kNm]", "pred_MRd"),
             ("Predicted Wk [mm]", "pred_Wk"),
             ("Predicted Cost", "pred_Cost"),
@@ -314,7 +301,6 @@ class RectSectionTabSGU(QWidget):
             ("Optimized n1", "opt_n1"),
             ("Optimized n2", "opt_n2"),
             ("Optimized MRd [kNm]", "opt_MRd"),
-            ("Optimized Mcr [kNm]", "opt_Mcr"),
             ("Optimized Wk [mm]", "opt_Wk"),
             ("Optimized Cost", "opt_Cost"),
         ]
@@ -372,19 +358,17 @@ class RectSectionTabSGU(QWidget):
 
             if As2 == 0:
                 results = predict_section_n1(MEd, b, h, fck, fi, cnom, As1)
-                self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
                 self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
                 self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
                 self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
             else:
                 results = predict_section_n2(MEd, b, h, fck, fi, cnom, As1, As2)
-                self.result_fields["pred_Mcr"].setText(f"{results['Mcr']:.2f}" if results['Mcr'] is not None else "N/A")
                 self.result_fields["pred_MRd"].setText(f"{results['MRd']:.2f}" if results['MRd'] is not None else "N/A")
                 self.result_fields["pred_Wk"].setText(f"{results['Wk']:.4f}" if results['Wk'] is not None else "N/A")
                 self.result_fields["pred_Cost"].setText(f"{results['Cost']:.2f}" if results['Cost'] is not None else "N/A")
         except Exception as e:
             print(f"Error in prediction: {e}")
-            for key in ["pred_Mcr", "pred_MRd", "pred_Wk", "pred_Cost"]:
+            for key in ["pred_MRd", "pred_Wk", "pred_Cost"]:
                 self.result_fields[key].setText("Invalid input")
 
     def _on_optimize(self) -> None:
@@ -420,7 +404,6 @@ class RectSectionTabSGU(QWidget):
             self.opt_result_fields["opt_n1"].setText(str(int(optimal['n1'])))
             self.opt_result_fields["opt_n2"].setText(str(int(optimal['n2'])))
             self.opt_result_fields["opt_MRd"].setText(f"{optimal['MRd']:.2f}")
-            self.opt_result_fields["opt_Mcr"].setText(f"{optimal['Mcr']:.2f}")
             self.opt_result_fields["opt_Wk"].setText(f"{optimal['Wk']:.4f}")
             self.opt_result_fields["opt_Cost"].setText(f"{optimal['Cost']:.2f}")
             

@@ -48,11 +48,6 @@ def calc_cost_n2(b: float, h: float, f_ck: float, A_s1: float, A_s2: float) -> f
 
 def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"neural_networks\rect_section_n1\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"neural_networks\rect_section_n1\models\MRd_model\model.keras",
             'scaler_X': r"neural_networks\rect_section_n1\models\MRd_model\scaler_X.pkl",
@@ -71,7 +66,6 @@ def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
         'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
         'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
         'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
@@ -107,11 +101,6 @@ def predict_section_batch_n1(input_data: pd.DataFrame, model_name: str):
 
 def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"neural_networks\rect_section_n2\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\rect_section_n2\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\rect_section_n2\models\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"neural_networks\rect_section_n2\models\MRd_model\model.keras",
             'scaler_X': r"neural_networks\rect_section_n2\models\MRd_model\scaler_X.pkl",
@@ -130,7 +119,6 @@ def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
         'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
@@ -219,7 +207,6 @@ def process_combinations_batch_n1(combinations_df: pd.DataFrame, wk_max: float, 
     
     # Batch predictions (cnom is not in MODEL_FEATURES so it won't be used)
     print("Running batch predictions...")
-    combinations_df['Mcr'] = predict_section_batch_n1(combinations_df, 'Mcr')
     combinations_df['MRd'] = predict_section_batch_n1(combinations_df, 'MRd')
     combinations_df['Wk'] = predict_section_batch_n1(combinations_df, 'Wk')
     
@@ -247,7 +234,6 @@ def process_combinations_batch_n2(combinations_df: pd.DataFrame, wk_max: float, 
     
     # Batch predictions (cnom is not in MODEL_FEATURES so it won't be used)
     print("Running batch predictions...")
-    combinations_df['Mcr'] = predict_section_batch_n2(combinations_df, 'Mcr')
     combinations_df['MRd'] = predict_section_batch_n2(combinations_df, 'MRd')
     combinations_df['Wk'] = predict_section_batch_n2(combinations_df, 'Wk')
     
