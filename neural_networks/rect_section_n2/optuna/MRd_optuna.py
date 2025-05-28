@@ -14,11 +14,11 @@ tf.random.set_seed(38)
 # ============================================
 # Data Loading and Preprocessing
 # ============================================
-df = pd.read_parquet(r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet")
+df = pd.read_parquet(r"neural_networks\rect_section_n2\dataset\dataset_rect_n2.parquet_40k")
 
 #[I 2025-05-16 07:02:43,799] Trial 103 finished with value: 0.0004968613502569497 and parameters: {'n_layers': 2, 'n_units_l0': 437, 'dropout_l0': 0.1306765604449219, 'n_units_l1': 493, 'dropout_l1': 0.4046861069497326, 'lr': 0.00010639103147276659, 'batch_size': 68}. Best is trial 103 with value: 0.0004968613502569497.
 
-features = ["b", "h","d", "fi", "fck", "ro1", "ro2"]
+features = ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
 target = ["MRd"]
 
 X = df[features].values   # shape: (n_samples, 8)
