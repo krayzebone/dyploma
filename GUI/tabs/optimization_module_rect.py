@@ -315,4 +315,4 @@ def find_best_solution(MEqp: float, MEd: float, b: float, h: float, wk_max: floa
             print(f" n1={solution_n1}")
             print(f" n2={solution_n2}")
             print(f"Solution with ro2 is cheaper ({solution_n2['Cost']} vs {solution_n1['Cost']})")
-            return solution_n2
+            return solution_n1

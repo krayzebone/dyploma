@@ -54,11 +54,6 @@ def find_valid_ro(b, h, fi_gl, n_min=2, n_max=200):
 
 def predict_section_n1(MEqp: float, b: float, h: float, d:float, fck: float, fi: float, cnom: float, As1: float):
     MODEL_PATHS = {
-        'Mcr': {
-            'model': r"neural_networks\rect_section_n1\models\Mcr_model\model.keras",
-            'scaler_X': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_X.pkl",
-            'scaler_y': r"neural_networks\rect_section_n1\models\Mcr_model\scaler_y.pkl"
-        },
         'MRd': {
             'model': r"neural_networks\rect_section_n1\models\MRd_model\model.keras",
             'scaler_X': r"neural_networks\rect_section_n1\models\MRd_model\scaler_X.pkl",
@@ -77,7 +72,6 @@ def predict_section_n1(MEqp: float, b: float, h: float, d:float, fck: float, fi:
     }
 
     MODEL_FEATURES = {
-        'Mcr':  ["b", "h", "d", "fi", "fck", "ro1"],
         'MRd':  ["b", "h", "d", "fi", "fck", "ro1"],
         'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1"],
         'Cost': ["b", "h", "d", "fi", "fck", "ro1"]
@@ -98,7 +92,7 @@ def predict_section_n1(MEqp: float, b: float, h: float, d:float, fck: float, fi:
     }
     
     results = {}
-    for model_name in ['Mcr', 'MRd', 'Wk', 'Cost']:
+    for model_name in ['MRd', 'Wk', 'Cost']:
         try:
             model_info = MODEL_PATHS[model_name]
             model = tf.keras.models.load_model(model_info['model'], compile=False)
@@ -133,18 +127,71 @@ def predict_section_n1(MEqp: float, b: float, h: float, d:float, fck: float, fi:
     
     return results
 
+def predict_section_batch_n2(input_data: pd.DataFrame, model_name: str):
+    MODEL_PATHS = {
+        'MRd': {
+            'model': r"neural_networks\rect_section_n2\models\MRd_model\model.keras",
+            'scaler_X': r"neural_networks\rect_section_n2\models\MRd_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\rect_section_n2\models\MRd_model\scaler_y.pkl"
+        },
+        'Wk': {
+            'model': r"neural_networks\rect_section_n2\models\Wk_model\model.keras",
+            'scaler_X': r"neural_networks\rect_section_n2\models\Wk_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\rect_section_n2\models\Wk_model\scaler_y.pkl"
+        },
+        'Cost': {
+            'model': r"neural_networks\rect_section_n2\models\Cost_model\model.keras",
+            'scaler_X': r"neural_networks\rect_section_n2\models\Cost_model\scaler_X.pkl",
+            'scaler_y': r"neural_networks\rect_section_n2\models\Cost_model\scaler_y.pkl"
+        }
+    }
+
+    MODEL_FEATURES = {
+        'MRd':  ["b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Wk':   ["MEqp", "b", "h", "d", "fi", "fck", "ro1", "ro2"],
+        'Cost': ["b", "h", "d", "fi", "fck", "ro1", "ro2"]
+    }
+    
+    try:
+        model_info = MODEL_PATHS[model_name]
+        model = tf.keras.models.load_model(model_info['model'], compile=False)
+        X_scalers_dict = joblib.load(model_info['scaler_X'])  # This is a dictionary of scalers
+        y_scaler = joblib.load(model_info['scaler_y'])
+
+        # Get the features in the correct order
+        features = MODEL_FEATURES[model_name]
+        X = input_data[features]
+        
+        # Apply log transform to each feature
+        X_log = np.log(X + 1e-8)
+        
+        # Scale each feature with its respective scaler
+        X_scaled = np.zeros_like(X_log)
+        for i, feature in enumerate(features):
+            scaler = X_scalers_dict[feature]  # Get the specific scaler for this feature
+            X_scaled[:, i] = scaler.transform(X_log[feature].values.reshape(-1, 1)).flatten()
+        
+        # Make prediction
+        pred_scaled = model.predict(X_scaled)
+        
+        # Inverse transform the prediction
+        return np.exp(y_scaler.inverse_transform(pred_scaled)).flatten()
+    except Exception as e:
+        print(f"⚠️ Error in {model_name}: {e}")
+        return np.full(len(input_data), np.nan)
 
 
 
 
-MEqp=200*1e6
-M_Ed=360*1e6
+
+MEqp=300*1e6
+M_Ed=300*1e6
 b=1000
 h=250
-fi_gl=16
-f_ck=35
+fi_gl=25
+f_ck=25
 f_yk=500
-n1=26
+n1=18
 n2=0
 c_nom=30
 fi_str=8
@@ -167,7 +214,7 @@ ro_s2 = A_s2 / (b * h)
 
 
 # Effective depth
-a_1 = c_nom + fi_gl / 2 - fi_str
+a_1 = c_nom + fi_gl / 2 + fi_str
 d = h - a_1
     
 f_cd = f_ck / 1.4
@@ -177,7 +224,12 @@ x_eff = (A_s1*f_yd) / (b * f_cd)
 ksi_eff = x_eff / d
 ksi_eff_lim = 0.8 * 0.0035 / (0.0035 + f_yd / E_s)
 
-M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff))
+if ksi_eff <= ksi_eff_lim:
+    M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff))
+else:
+    xeff = ksi_eff_lim * d
+    M_Rd = (x_eff * b * f_cd * (d - 0.5 * x_eff))
+print(x_eff)
 
     
 
@@ -261,14 +313,15 @@ s_r_max = k_3*c_nom + k_1*k_2*k_4*fi_gl / ro_p_eff
 w_k = delta_sigma * epsilon_cr
 w_k_max = 0.3
 
-results = predict_section_n1(MEqp / 1e6, b, h, d, f_ck, fi_gl, c_nom, A_s1)
+Cost = calculate_section_cost(b, h, f_ck, A_s1, A_s2=0)
 
 print(f" MRd_real={M_Rd / 1e6:.2f} kNm")
-print(f" Mcr_real={M_cr / 1e6:.2f} kNm")
 print(f" Wk_real={w_k:.4f} mm")
+print(f" Cost_real={Cost:.4f} mm")
 
+"""
 print("\nPredicted values:")
 print(f" MRd_pred={results['MRd']:.2f} kNm")
-print(f" Mcr_pred={results['Mcr']:.2f} kNm")
 print(f" Wk_pred={results['Wk']:.4f} mm")
 print(f" Cost_pred={results['Cost']:.2f} zł")
+"""
