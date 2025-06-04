@@ -51,10 +51,10 @@ def calculate_number_of_rods(As: float, fi: float) -> Tuple[int, float]:
     return n, n * Aφ
 
 def distribute_rods_2_layers(bw: float, cnom: float, n: int, fi: float) -> Tuple[bool, List[int]]:
-    """Distribute rods between two layers.
+    """Distribute rods in a single layer.
     
     Returns:
-        Tuple of (fits?, [n_bottom, n_second])
+        Tuple of (fits?, [n_bottom, 0])
     """
     if n == 0:
         return True, [0, 0]
@@ -67,9 +67,7 @@ def distribute_rods_2_layers(bw: float, cnom: float, n: int, fi: float) -> Tuple
     if n_max <= 0:
         return False, [0, 0]
     
-    n_bottom = min(n, n_max)
-    n_second = n - n_bottom
-    return n_second <= n_max, [n_bottom, n_second]
+    return n <= n_max, [n, 0]
 
 def centroid_shift(rods: List[int], fi: float) -> float:
     """Calculate yc above bottom layer for two-layer pack."""

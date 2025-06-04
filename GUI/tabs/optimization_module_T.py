@@ -161,7 +161,7 @@ def calc_max_rodsn2(bw: float, fi: float, cnom: float) -> int:
     return n_max
 
 
-def generate_all_combinationsn1(MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float):
+def generate_all_combinationsn1(MEqp: float, beff: float, bw: float, h: float, hf: float, cnom: float):
     possible_fck = [16, 20, 25, 30, 35, 40, 45, 50]
     possible_fi = [8, 10, 12, 14, 16, 20, 25, 28, 32]
     
@@ -170,7 +170,7 @@ def generate_all_combinationsn1(MEd: float, beff: float, bw: float, h: float, hf
         n_max = calc_max_rodsn1(bw, fi, cnom)
         for n1 in range(1, n_max + 1):  # Fixed range iteration
             all_combinations.append({
-                'MEd': MEd,
+                'MEd': MEqp,
                 'beff': beff,
                 'bw': bw,
                 'h': h,
@@ -182,7 +182,7 @@ def generate_all_combinationsn1(MEd: float, beff: float, bw: float, h: float, hf
             })
     return pd.DataFrame(all_combinations)
 
-def generate_all_combinationsn2(MEd: float, beff: float, bw: float, h: float, hf: float, cnom: float):
+def generate_all_combinationsn2(MEqp: float, beff: float, bw: float, h: float, hf: float, cnom: float):
     possible_fck = [16, 20, 25, 30, 35, 40, 45, 50]
     possible_fi = [8, 10, 12, 14, 16, 20, 25, 28, 32]
     
@@ -192,7 +192,7 @@ def generate_all_combinationsn2(MEd: float, beff: float, bw: float, h: float, hf
         for n1 in range(1, n_max + 1):  # Fixed range iteration
             for n2 in range(2, n_max + 1):  # Assuming minimum 2 bars for compression reinforcement
                 all_combinations.append({
-                    'MEd': MEd,
+                    'MEd': MEqp,
                     'beff': beff,
                     'bw': bw,
                     'h': h,
